@@ -1,9 +1,12 @@
-name = "dorysapp-worker"
-main = "src/index.js"
-compatibility_date = "2024-01-01"
-
-# Conexión a tu Base de Datos D1
-[[d1_databases]]
-binding = "DB"
-database_name = "dorys_db"
-database_id = "b8755e8b-7a99-46ce-b82e-71664c1871ce"
+{
+  "name": "dorysapp-worker",
+  "main": "src/index.js",
+  "compatibility_date": "2024-01-01",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "dorys_db",
+      "database_id": "b8755e8b-7a99-46ce-b82e-71664c1871ce"
+    }
+  ]
+}
