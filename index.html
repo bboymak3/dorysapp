@@ -257,7 +257,7 @@
 
     <script>
         // ==========================================
-        // CONFIGURACIÓN API (CAMBIAR ESTO)
+        // CONFIGURACIÓN API
         // ==========================================
         const API_URL = "https://dorysapp.estilosgrado33.workers.dev"; 
 
@@ -276,14 +276,20 @@
             reviews: [],
             saveUser: async (u) => {
                 try {
-                    await fetch(`${API_URL}/api/user`, {
+                    const res = await fetch(`${API_URL}/api/user`, {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(u)
                     });
+                    if(!res.ok) throw new Error("Error guardando en servidor");
+                    
+                    // Si la guardada en la nube fue exitosa, limpiamos locales viejos para asegurar consistencia
                     const existing = db.users.findIndex(x => x.id === u.id);
                     if(existing >= 0) db.users[existing] = u; else db.users.push(u);
                     localStorage.setItem('geo_users', JSON.stringify(db.users));
-                } catch (e) { localStorage.setItem('geo_users', JSON.stringify(db.users)); }
+                } catch (e) {
+                    console.error("Fallo red, guardando local:", e);
+                    localStorage.setItem('geo_users', JSON.stringify(db.users));
+                }
             },
             getNearby: async (lat, lng) => {
                 try {
@@ -294,7 +300,9 @@
                         localStorage.setItem('geo_users', JSON.stringify(data));
                         return data;
                     }
-                } catch (e) {}
+                } catch (e) {
+                    console.warn("Error de red cargando usuarios, usando caché local.");
+                }
                 if(localStorage.getItem('geo_users')) { db.users = JSON.parse(localStorage.getItem('geo_users')); return db.users; }
                 if(db.users.length === 0) { db.generateFakeData(lat, lng); }
                 return db.users;
@@ -347,20 +355,31 @@
         async function checkUser() {
             const phone = document.getElementById('login-phone').value;
             if(!phone) return alert("Ingresa tu teléfono");
+            
             const btn = document.querySelector('#login-view button');
             const originalText = btn.textContent;
             btn.textContent = "Verificando..."; btn.disabled = true;
+
             try {
                 const response = await fetch(`${API_URL}/api/check-user?phone=${phone}`);
+                if(!response.ok) throw new Error("Error de red");
+                
                 const data = await response.json();
-                if(data.found && data.user) loginUser(data.user);
-                else showRegisterView(phone);
+                
+                if(data.found && data.user) {
+                    loginUser(data.user);
+                } else {
+                    showRegisterView(phone);
+                }
             } catch (e) {
-                alert("Error de conexión.");
+                console.error(e);
+                alert("No se pudo conectar con el servidor. Verifica tu internet.");
+                // Fallback local por si acaso
                 const localUser = db.users.find(u => u.phone === phone);
                 if(localUser) loginUser(localUser);
                 else showRegisterView(phone);
             }
+            
             btn.textContent = originalText; btn.disabled = false;
         }
 
@@ -389,6 +408,7 @@
             const newUser = {
                 id: 'me_' + Date.now(), name: fullName, phone: phone, role: selectedRole, details: details, lat: 0, lng: 0 
             };
+            
             await db.saveUser(newUser);
             loginUser(newUser);
         });
@@ -413,7 +433,7 @@
                 navigator.geolocation.getCurrentPosition((position) => {
                     const { latitude, longitude } = position.coords;
                     user.lat = latitude; user.lng = longitude;
-                    db.saveUser(user);
+                    db.saveUser(user); // Actualizar ubicación en nube
                     updateUserLocation(latitude, longitude);
                 });
             }
