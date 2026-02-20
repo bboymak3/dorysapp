@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>DORYSAPP - Red Social Urbana</title>
     
-    <!-- Leaflet CSS (Actualizado para Worker) -->
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -14,10 +14,10 @@
         :root {
             --bg-dark: #121212;
             --surface: #1e1e1e;
-            --primary: #2ecc71; /* Verde Usuario */
-            --service: #f1c40f; /* Amarillo Servicio */
-            --business: #9b59b6; /* Violeta Negocio */
-            --danger: #e74c3c; /* Rojo SOS */
+            --primary: #2ecc71; /* Verde */
+            --service: #f1c40f; /* Amarillo */
+            --business: #9b59b6; /* Violeta */
+            --danger: #e74c3c; /* Rojo */
             --text: #ffffff;
             --text-sec: #aaaaaa;
         }
@@ -25,27 +25,20 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { background: var(--bg-dark); color: var(--text); height: 100vh; overflow: hidden; }
 
-        /* --- PANTALLA DE AUTH --- */
+        /* --- AUTH --- */
         #auth-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); z-index: 2000;
-            display: flex; justify-content: center; align-items: center;
-            padding: 20px; overflow-y: auto;
+            position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 3000;
+            display: flex; justify-content: center; align-items: center; padding: 20px;
         }
         .auth-box {
-            background: var(--surface); width: 100%; max-width: 400px;
-            padding: 25px; border-radius: 15px; text-align: center;
-            box-shadow: 0 0 20px rgba(46, 204, 113, 0.2);
-            margin: 20px 0;
+            background: var(--surface); width: 100%; max-width: 400px; padding: 25px;
+            border-radius: 15px; text-align: center; box-shadow: 0 0 20px rgba(46, 204, 113, 0.2);
         }
         .role-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 20px 0; }
         .role-card {
-            background: #2a2a2a; padding: 15px 5px; border-radius: 10px;
-            cursor: pointer; border: 2px solid transparent; transition: 0.3s;
-            display: flex; flex-direction: column; align-items: center; gap: 5px;
+            background: #2a2a2a; padding: 15px 5px; border-radius: 10px; cursor: pointer;
+            border: 2px solid transparent; display: flex; flex-direction: column; align-items: center; gap: 5px;
         }
-        .role-card i { font-size: 1.5rem; }
-        .role-card span { font-size: 0.75rem; }
         .role-card.active-user { border-color: var(--primary); background: rgba(46, 204, 113, 0.1); color: var(--primary); }
         .role-card.active-service { border-color: var(--service); background: rgba(241, 196, 15, 0.1); color: var(--service); }
         .role-card.active-business { border-color: var(--business); background: rgba(155, 89, 182, 0.1); color: var(--business); }
@@ -60,158 +53,101 @@
         .btn-enter { background: var(--primary); color: black; }
         .hidden { display: none !important; }
 
-        /* --- MAPA Y UI --- */
+        /* --- HEADER --- */
+        #user-info-bar {
+            position: fixed; top: 10px; left: 10px; right: 10px; background: rgba(30,30,30,0.9);
+            backdrop-filter: blur(5px); padding: 10px 15px; border-radius: 30px; z-index: 2000;
+            display: flex; justify-content: space-between; align-items: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        #header-icon-container { display: flex; align-items: center; gap: 10px; }
+
+        /* --- MAPA --- */
         #map { width: 100%; height: 100vh; z-index: 1; }
         #sos-btn {
-            position: fixed; bottom: 90px; left: 20px;
-            width: 60px; height: 60px; border-radius: 50%;
-            background: var(--danger); color: white; border: 4px solid white;
-            font-size: 24px; display: flex; justify-content: center; align-items: center;
-            cursor: pointer; z-index: 1000; box-shadow: 0 0 15px rgba(231, 76, 60, 0.6);
+            position: fixed; bottom: 90px; left: 20px; width: 60px; height: 60px; border-radius: 50%;
+            background: var(--danger); color: white; border: 4px solid white; font-size: 24px;
+            display: flex; justify-content: center; align-items: center; cursor: pointer; z-index: 2000;
             animation: pulse-red 2s infinite;
         }
         @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(231, 76, 60, 0); } 100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); } }
 
-        #user-info-bar {
-            position: fixed; top: 10px; left: 10px; right: 10px;
-            background: rgba(30, 30, 30, 0.9); backdrop-filter: blur(5px);
-            padding: 10px 15px; border-radius: 30px; z-index: 1000;
-            display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        }
-
-        /* --- MODAL --- */
+        /* --- MODALES (DETALLES Y CHAT) --- */
         .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6); z-index: 1500;
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2500;
             display: none; justify-content: center; align-items: flex-end;
         }
         .modal-overlay.active { display: flex; animation: slideUp 0.3s ease; }
         .modal-card {
-            background: var(--surface); width: 100%; max-width: 500px;
-            border-radius: 20px 20px 0 0; padding: 20px;
-            max-height: 85vh; overflow-y: auto; position: relative;
+            background: var(--surface); width: 100%; max-width: 500px; border-radius: 20px 20px 0 0;
+            padding: 20px; max-height: 85vh; overflow-y: auto; position: relative; display: flex; flex-direction: column;
         }
-        .modal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
-        .pin-icon-large { font-size: 2rem; margin-right: 15px; }
-        .modal-title h2 { font-size: 1.2rem; }
-        .modal-title p { color: var(--text-sec); font-size: 0.9rem; }
+        .modal-header { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px;}
         .close-modal { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+        
+        /* Estilos específicos del Chat */
+        #chat-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; min-height: 200px; }
+        .msg { max-width: 75%; padding: 10px; border-radius: 15px; font-size: 0.9rem; }
+        .msg-own { align-self: flex-end; background: var(--primary); color: black; border-bottom-right-radius: 2px; }
+        .msg-other { align-self: flex-start; background: #444; color: white; border-bottom-left-radius: 2px; }
+        .chat-input-area { display: flex; gap: 10px; margin-top: auto; }
+        .chat-input-area input { flex: 1; padding: 10px; border-radius: 20px; border: none; background: #333; color: white; }
+
+        /* Estilos del Modal Detalles */
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         .stat-box { background: #2a2a2a; padding: 10px; border-radius: 10px; text-align: center; }
-        .stat-val { font-weight: bold; font-size: 1.1rem; }
-        .stat-label { font-size: 0.75rem; color: var(--text-sec); }
-        .reviews-section { border-top: 1px solid #333; padding-top: 15px; }
         .review-item { background: #252525; padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 0.9rem; }
-        .stars { color: gold; font-size: 0.8rem; }
-        .add-review { margin-top: 15px; display: flex; gap: 10px; }
-        .add-review input { flex: 1; padding: 8px; border-radius: 5px; border: none; }
-        .btn-action { padding: 8px 15px; border-radius: 5px; border: none; font-weight: bold; cursor: pointer; }
-        .btn-contact { background: var(--primary); color: black; width: 100%; margin-top: 10px; }
+        .stars { color: gold; }
 
-        /* --- PINES --- */
-        .custom-pin {
-            display: flex; justify-content: center; align-items: center;
-            color: white; border-radius: 50%; border: 2px solid white;
-            box-shadow: 0 3px 5px rgba(0,0,0,0.5);
-        }
+        /* PINES */
+        .custom-pin { display: flex; justify-content: center; align-items: center; color: white; border-radius: 50%; border: 2px solid white; box-shadow: 0 3px 5px rgba(0,0,0,0.5); }
         .pin-user { background: var(--primary); }
         .pin-service { background: var(--service); clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); border-radius: 0; border: none; }
         .pin-business { background: var(--business); border-radius: 8px; }
-        .pulse-dot::after {
-            content: ''; position: absolute; width: 100%; height: 100%;
-            background: inherit; border-radius: inherit; opacity: 0.6;
-            animation: pulse-ring 2s infinite; z-index: -1;
-        }
+        .pulse-dot::after { content: ''; position: absolute; width: 100%; height: 100%; background: inherit; border-radius: inherit; opacity: 0.6; animation: pulse-ring 2s infinite; z-index: -1; }
         @keyframes pulse-ring { 0% { transform: scale(1); opacity: 0.6; } 100% { transform: scale(2.5); opacity: 0; } }
-        body.sos-active #map { filter: grayscale(100%) sepia(100%) hue-rotate(-50deg) saturate(300%); }
-        body.sos-active #sos-btn { background: white; color: var(--danger); border-color: var(--danger); }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-    <!-- PANTALLA DE AUTENTICACIÓN -->
+    <!-- AUTH -->
     <div id="auth-screen">
         <div class="auth-box">
             <h2 style="color:var(--primary); margin-bottom: 10px;">DORYSAPP</h2>
-            
-            <!-- VISTA LOGIN -->
             <div id="login-view">
-                <p style="color:var(--text-sec); margin-bottom: 20px;">Ingresa tu número para entrar</p>
-                <div class="input-group">
-                    <label>Teléfono</label>
-                    <input type="tel" id="login-phone" required placeholder="Ej: 0414-0000000">
-                </div>
-                <button type="button" class="btn-main btn-enter" onclick="checkUser()">Entrar</button>
+                <p style="color:#aaa; margin-bottom: 20px;">Ingresa tu número</p>
+                <div class="input-group"><label>Teléfono</label><input type="tel" id="login-phone" placeholder="0414..."></div>
+                <button class="btn-main btn-enter" onclick="checkUser()">Entrar</button>
             </div>
-
-            <!-- VISTA REGISTRO -->
             <div id="register-view" class="hidden">
-                <p style="color:var(--text-sec); margin-bottom: 10px;">¡Nuevo por aquí! Regístrate</p>
-                
+                <p style="color:#aaa; margin-bottom: 10px;">Registro</p>
                 <div class="role-grid">
-                    <div class="role-card active-user" id="role-user" onclick="selectRole('user')">
-                        <i class="fa-solid fa-user"></i>
-                        <span>Persona</span>
-                    </div>
-                    <div class="role-card" id="role-service" onclick="selectRole('service')">
-                        <i class="fa-solid fa-taxi"></i>
-                        <span>Servicio</span>
-                    </div>
-                    <div class="role-card" id="role-business" onclick="selectRole('business')">
-                        <i class="fa-solid fa-store"></i>
-                        <span>Negocio</span>
-                    </div>
+                    <div class="role-card active-user" id="role-user" onclick="selectRole('user')"><i class="fa-solid fa-user"></i><span>Yo</span></div>
+                    <div class="role-card" id="role-service" onclick="selectRole('service')"><i class="fa-solid fa-taxi"></i><span>Servicio</span></div>
+                    <div class="role-card" id="role-business" onclick="selectRole('business')"><i class="fa-solid fa-store"></i><span>Negocio</span></div>
                 </div>
-
-                <form id="reg-form">
-                    <div class="input-group">
-                        <label>Nombre</label>
-                        <input type="text" id="reg-name" required placeholder="Tu nombre">
-                    </div>
-                    <div class="input-group">
-                        <label>Apellido</label>
-                        <input type="text" id="reg-surname" required placeholder="Tu apellido">
-                    </div>
-                    <div class="input-group">
-                        <label>Teléfono</label>
-                        <input type="tel" id="reg-phone" readonly style="background:#444; cursor:not-allowed;">
-                    </div>
-
-                    <div class="input-group hidden" id="service-options">
-                        <label>Tipo de Servicio</label>
-                        <select id="reg-type">
-                            <option value="Taxi">🚕 Taxi</option>
-                            <option value="MotoTaxi">🏍️ Moto Taxi</option>
-                            <option value="Delivery">📦 Delivery</option>
-                        </select>
-                    </div>
-
-                    <div class="input-group hidden" id="business-options">
-                        <label>¿Qué productos o servicios ofrece?</label>
-                        <input type="text" id="reg-offer" placeholder="Ej. Comida, Reparaciones...">
-                    </div>
-
-                    <button type="submit" class="btn-main btn-enter">Crear Cuenta</button>
-                    <button type="button" class="btn-main" style="background:transparent; border:1px solid #444; margin-top:5px;" onclick="showLoginView()">Volver</button>
-                </form>
+                <div class="input-group"><label>Nombre</label><input type="text" id="reg-name"></div>
+                <div class="input-group"><label>Apellido</label><input type="text" id="reg-surname"></div>
+                <div class="input-group"><label>Teléfono</label><input type="tel" id="reg-phone" readonly></div>
+                <div class="input-group hidden" id="service-options"><label>Servicio</label><select id="reg-type"><option value="Taxi">Taxi</option><option value="MotoTaxi">MotoTaxi</option><option value="Delivery">Delivery</option></select></div>
+                <div class="input-group hidden" id="business-options"><label>Ofreces</label><input type="text" id="reg-offer"></div>
+                <button class="btn-main" onclick="registerUser()">Crear Cuenta</button>
+                <button class="btn-main" style="background:transparent; border:1px solid #444; margin-top:5px;" onclick="showLogin()">Volver</button>
             </div>
         </div>
     </div>
 
-    <!-- UI PRINCIPAL -->
+    <!-- HEADER -->
     <div id="user-info-bar" class="hidden">
-        <div style="display:flex; align-items:center; gap:10px;">
-            <i id="status-icon" class="fa-solid fa-circle" style="font-size:10px;"></i>
+        <div id="header-icon-container">
+            <!-- Icono Dinámico -->
+            <i id="header-icon" class="fa-solid fa-user" style="font-size: 1.2rem; color: var(--primary);"></i>
             <div>
                 <span id="display-name" style="font-weight:bold;">Usuario</span>
                 <br><span id="display-role" style="font-size:0.75rem; color:#aaa;">Rol</span>
             </div>
         </div>
-        <button onclick="logout()" style="background:none; border:none; color:#aaa; cursor:pointer;">
-            <i class="fa-solid fa-right-from-bracket"></i>
-        </button>
+        <button onclick="location.reload()" style="background:none; border:none; color:#aaa;"><i class="fa-solid fa-power-off"></i></button>
     </div>
 
     <div id="map"></div>
@@ -222,308 +158,243 @@
         <div class="modal-card">
             <div class="modal-header">
                 <div style="display:flex; align-items:center;">
-                    <div id="modal-pin-icon" class="custom-pin pin-user pin-icon-large pulse-dot"><i class="fa-solid fa-user"></i></div>
-                    <div class="modal-title">
-                        <h2 id="modal-name">Nombre</h2>
-                        <p id="modal-desc">Descripción</p>
-                    </div>
+                    <div id="modal-pin-icon" class="custom-pin pin-user pulse-dot" style="width:40px; height:40px; margin-right:10px; font-size:1.2rem;"><i class="fa-solid fa-user"></i></div>
+                    <div><h2 id="modal-name">Nombre</h2><p id="modal-desc" style="color:#aaa; font-size:0.9rem;"></p></div>
                 </div>
-                <button class="close-modal" onclick="closeModal()">&times;</button>
+                <button onclick="closeModal('detail-modal')" style="background:none; border:none; color:white; font-size:1.5rem;">&times;</button>
             </div>
-            <div class="stats-grid">
-                <div class="stat-box"><div class="stat-val" id="modal-dist">0 m</div><div class="stat-label">Distancia</div></div>
-                <div class="stat-box"><div class="stat-val" id="modal-time">0 min</div><div class="stat-label">Tiempo aprox.</div></div>
+            <div style="margin-bottom:20px;">
+                <div style="background:#2a2a2a; padding:10px; border-radius:10px; text-align:center; display:inline-block; width:48%; margin-right:2%"><b id="modal-dist">0 m</b><br><small>Distancia</small></div>
+                <div style="background:#2a2a2a; padding:10px; border-radius:10px; text-align:center; display:inline-block; width:48%"><b id="modal-time">0 min</b><br><small>Tiempo</small></div>
             </div>
-            <div class="reviews-section">
-                <h4>Reseñas (<span id="rating-avg">0.0</span> <i class="fa-solid fa-star stars"></i>)</h4>
-                <div id="reviews-list" style="margin-top:10px; max-height:150px; overflow-y:auto;"></div>
-                <div class="add-review">
-                    <select id="rating-select" style="padding:8px; border-radius:5px; border:none;">
-                        <option value="5">⭐⭐⭐⭐⭐</option>
-                        <option value="4">⭐⭐⭐⭐</option>
-                        <option value="3">⭐⭐⭐</option>
-                        <option value="2">⭐⭐</option>
-                        <option value="1">⭐</option>
-                    </select>
-                    <input type="text" id="review-text" placeholder="Escribe un comentario...">
-                    <button class="btn-action bg-green" onclick="submitReview()">Enviar</button>
-                </div>
+            <h4>Reseñas</h4>
+            <div id="reviews-list" style="margin-top:10px; max-height:150px; overflow-y:auto;"></div>
+            <div style="margin-top:15px; display:flex; gap:10px;">
+                <select id="rating-select" style="padding:8px;"><option value="5">⭐⭐⭐⭐⭐</option></select>
+                <input type="text" id="review-text" placeholder="Comentario..." style="flex:1; padding:8px; background:#333; border:none; color:white;">
+                <button onclick="submitReview()" style="background:var(--primary); border:none; padding:0 15px; border-radius:5px; cursor:pointer;">Enviar</button>
             </div>
-            <button class="btn-main btn-contact" onclick="contactAction()"><i class="fa-solid fa-comments"></i> Contactar</button>
+            <button id="btn-open-chat" class="btn-main" style="margin-top: 20px; background: var(--primary); color: black;">Contactar</button>
         </div>
     </div>
 
-    <!-- SCRIPTS -->
-    <!-- Leaflet JS (Sin integrity para evitar bloqueos en modo Worker) -->
+    <!-- MODAL CHAT -->
+    <div class="modal-overlay" id="chat-modal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div style="display:flex; align-items:center;">
+                    <i class="fa-solid fa-comments" style="margin-right:10px; color: var(--primary);"></i>
+                    <h3 id="chat-with-name">Chat</h3>
+                </div>
+                <button onclick="closeModal('chat-modal')" style="background:none; border:none; color:white; font-size:1.5rem;">&times;</button>
+            </div>
+            <div id="chat-messages">
+                <!-- Mensajes aquí -->
+                <div style="text-align:center; color:#666; font-size:0.8rem; margin-top:10px;">Inicio del chat</div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Escribe un mensaje...">
+                <button onclick="sendMessage()" style="background:var(--primary); border:none; border-radius:50%; width:40px; height:40px; cursor:pointer;"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
     <script>
-        // --- CONFIGURACIÓN ---
-        // URL vacía porque estamos en el mismo servidor (_worker.js)
         const API_URL = ""; 
-
-        const appState = {
-            user: null,
-            map: null,
-            userMarker: null,
-            currentSelection: null,
-            sosActive: false
+        const appState = { user: null, map: null, userMarker: null, currentSelection: null, chatTarget: null };
+        
+        // --- ICONOS POR ROL ---
+        const ROLE_ICONS = {
+            'user': 'fa-solid fa-user',
+            'service': 'fa-solid fa-taxi',
+            'business': 'fa-solid fa-store'
+        };
+        const ROLE_COLORS = {
+            'user': 'var(--primary)',
+            'service': 'var(--service)',
+            'business': 'var(--business)'
         };
 
-        // --- DB CONNECTION HELPER ---
-        const db = {
-            users: [],
-            reviews: [],
-            saveUser: async (u) => {
-                try {
-                    const res = await fetch(`${API_URL}/api/user`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(u)
-                    });
-                    if(!res.ok) throw new Error("Error guardando en servidor");
-                    const existing = db.users.findIndex(x => x.id === u.id);
-                    if(existing >= 0) db.users[existing] = u; else db.users.push(u);
-                } catch (e) {
-                    console.error("Fallo red guardando:", e);
-                }
-            },
-            getNearby: async (lat, lng) => {
-                try {
-                    const response = await fetch(`${API_URL}/api/users`);
-                    if(response.ok) {
-                        const data = await response.json();
-                        db.users = data;
-                        return data;
-                    }
-                } catch (e) { console.warn("Error de red, usando caché."); }
-                return db.users;
-            },
-            addReview: async (targetId, author, stars, comment) => {
-                try {
-                    await fetch(`${API_URL}/api/review`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ targetId, author, stars, comment })
-                    });
-                    db.reviews.push({ targetId, author, stars, comment });
-                } catch (e) { db.reviews.push({ targetId, author, stars, comment }); }
-            },
-            getReviews: async (targetId) => {
-                try {
-                    const response = await fetch(`${API_URL}/api/reviews/${targetId}`);
-                    if(response.ok) { db.reviews = await response.json(); return db.reviews; }
-                } catch (e) {}
-                return db.reviews.filter(r => r.targetId === targetId);
-            },
-            generateFakeData: (centerLat, centerLng) => {
-                const names = ["Ana", "Carlos", "Lucía", "Miguel", "Sofia", "David", "Tacos Leo", "Farmacia Cruz", "ServiExpress"];
-                const roles = ["user", "service", "business", "user", "service"];
-                const details = ["", "Taxi", "Tacos al Pastor", "", "MotoTaxi"];
-                for(let i=0; i<8; i++) {
-                    const rLat = centerLat + (Math.random() - 0.5) * 0.02;
-                    const rLng = centerLng + (Math.random() - 0.5) * 0.02;
-                    db.users.push({ id: 'fake_'+i, name: names[i], role: roles[i], lat: rLat, lng: rLng, details: details[i] || '' });
-                }
-            }
-        };
-
-        // --- AUTH LOGIC ---
+        // --- AUTH ---
         let selectedRole = 'user';
-
         function selectRole(role) {
             selectedRole = role;
-            document.querySelectorAll('.role-card').forEach(el => el.className = 'role-card');
+            document.querySelectorAll('.role-card').forEach(e => e.className = 'role-card');
             document.getElementById(`role-${role}`).classList.add(`active-${role}`);
-            const serviceOpts = document.getElementById('service-options');
-            const businessOpts = document.getElementById('business-options');
-            serviceOpts.classList.add('hidden'); businessOpts.classList.add('hidden');
-            if(role === 'service') serviceOpts.classList.remove('hidden');
-            if(role === 'business') businessOpts.classList.remove('hidden');
+            document.getElementById('service-options').classList.add('hidden');
+            document.getElementById('business-options').classList.add('hidden');
+            if(role === 'service') document.getElementById('service-options').classList.remove('hidden');
+            if(role === 'business') document.getElementById('business-options').classList.remove('hidden');
         }
 
         async function checkUser() {
             const phone = document.getElementById('login-phone').value;
-            if(!phone) return alert("Ingresa tu teléfono");
-            
+            if(!phone) return alert("Ingresa teléfono");
             try {
-                const response = await fetch(`${API_URL}/api/check-user?phone=${phone}`);
-                const data = await response.json();
-                
-                if(data.found && data.user) {
-                    loginUser(data.user);
-                } else {
-                    showRegisterView(phone);
-                }
-            } catch (e) {
-                console.error(e);
-                alert("No se pudo conectar con el servidor. Verifica tu internet.");
-            }
+                const data = await (await fetch(`/api/check-user?phone=${phone}`)).json();
+                if(data.found) enterApp(data.user);
+                else { document.getElementById('login-view').classList.add('hidden'); document.getElementById('register-view').classList.remove('hidden'); document.getElementById('reg-phone').value = phone; }
+            } catch(e) { alert("Error de conexión"); }
         }
 
-        function showRegisterView(phone) {
-            document.getElementById('login-view').classList.add('hidden');
-            document.getElementById('register-view').classList.remove('hidden');
-            document.getElementById('reg-phone').value = phone;
-        }
-
-        function showLoginView() {
-            document.getElementById('register-view').classList.add('hidden');
-            document.getElementById('login-view').classList.remove('hidden');
-        }
-
-        document.getElementById('reg-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
+        async function registerUser() {
             const name = document.getElementById('reg-name').value;
             const surname = document.getElementById('reg-surname').value;
             const phone = document.getElementById('reg-phone').value;
-            const fullName = `${name} ${surname}`;
-            let details = "";
-            if(selectedRole === 'service') details = document.getElementById('reg-type').value;
-            else if(selectedRole === 'business') details = document.getElementById('reg-offer').value;
-            else details = "Usuario normal";
+            let details = (selectedRole === 'service') ? document.getElementById('reg-type').value : (selectedRole === 'business' ? document.getElementById('reg-offer').value : "Usuario");
+            const newUser = { id: 'me_'+Date.now(), name: name+' '+surname, phone, role: selectedRole, details, lat: 0, lng: 0 };
+            try {
+                await fetch('/api/user', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(newUser) });
+                enterApp(newUser);
+            } catch(e) { alert("Error registrando"); }
+        }
+        function showLogin() { document.getElementById('register-view').classList.add('hidden'); document.getElementById('login-view').classList.remove('hidden'); }
 
-            const newUser = {
-                id: 'me_' + Date.now(), name: fullName, phone: phone, role: selectedRole, details: details, lat: 0, lng: 0 
-            };
-            
-            await db.saveUser(newUser);
-            loginUser(newUser);
-        });
-
-        async function loginUser(user) {
+        // --- APP ---
+        async function enterApp(user) {
             appState.user = user;
-            document.getElementById('display-name').textContent = user.name;
-            document.getElementById('display-role').textContent = user.role === 'business' ? 'Negocio' : (user.role === 'service' ? 'Servicio' : 'Usuario');
-            const icon = document.getElementById('status-icon');
-            icon.className = 'fa-solid fa-circle';
-            if(user.role === 'user') icon.style.color = 'var(--primary)';
-            if(user.role === 'service') icon.style.color = 'var(--service)';
-            if(user.role === 'business') icon.style.color = 'var(--business)';
-
+            // ACTUALIZAR HEADER CON ICONO Y COLOR CORRECTO
+            const headerIcon = document.getElementById('header-icon');
+            headerIcon.className = ROLE_ICONS[user.role] || 'fa-solid fa-user';
+            headerIcon.style.color = ROLE_COLORS[user.role] || 'var(--primary)';
+            
+            document.getElementById('display-name').innerText = user.name;
+            document.getElementById('display-role').innerText = user.role === 'business' ? 'Negocio' : (user.role === 'service' ? 'Servicio' : 'Usuario');
             document.getElementById('auth-screen').classList.add('hidden');
             document.getElementById('user-info-bar').classList.remove('hidden');
             document.getElementById('sos-btn').classList.remove('hidden');
 
-            initMap();
+            appState.map = L.map('map').setView([0,0],2);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(appState.map);
 
-            if ("geolocation" in navigator) {
-                navigator.geolocation.getCurrentPosition((position) => {
-                    const { latitude, longitude } = position.coords;
+            if("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(async (pos) => {
+                    const { latitude, longitude } = pos.coords;
                     user.lat = latitude; user.lng = longitude;
-                    db.saveUser(user);
-                    updateUserLocation(latitude, longitude);
+                    await fetch('/api/user', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(user) });
+                    appState.map.setView([latitude, longitude], 15);
+                    if(appState.userMarker) appState.map.removeLayer(appState.userMarker);
+                    appState.userMarker = L.marker([latitude, longitude], {icon: createIcon('user')}).addTo(appState.map).bindPopup("Tú");
+                    loadUsers();
                 });
             }
         }
 
-        // --- MAP LOGIC ---
-        async function initMap() {
-            appState.map = L.map('map').setView([19.4326, -99.1332], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(appState.map);
-            if ("geolocation" in navigator) {
-                navigator.geolocation.getCurrentPosition(async (position) => {
-                    const { latitude, longitude } = position.coords;
-                    updateUserLocation(latitude, longitude);
-                }, () => loadNearbyUsers(19.4326, -99.1332));
-            }
-        }
-
-        function updateUserLocation(lat, lng) {
-            appState.user.lat = lat; appState.user.lng = lng;
-            db.saveUser(appState.user);
-            appState.map.setView([lat, lng], 15);
-            if (appState.userMarker) appState.map.removeLayer(appState.userMarker);
-            const myIcon = createIcon('user');
-            appState.userMarker = L.marker([lat, lng], {icon: myIcon}).addTo(appState.map).bindPopup("Tú estás aquí");
-            loadNearbyUsers(lat, lng);
-        }
-
-        async function loadNearbyUsers(lat, lng) {
-            const nearby = await db.getNearby(lat, lng);
-            nearby.forEach(u => {
-                if(u.id === appState.user.id) return; 
-                let iconType = 'user';
-                if(u.role === 'service') iconType = 'service';
-                if(u.role === 'business') iconType = 'business';
-                const marker = L.marker([u.lat, u.lng], {icon: createIcon(iconType)}).addTo(appState.map);
-                // CORRECCIÓN CRÍTICA: Era 'marker on', debe ser 'marker.on'
-                marker.on('click', () => { openDetailModal(u); });
-            });
+        async function loadUsers() {
+            try {
+                const users = await (await fetch('/api/users')).json();
+                users.forEach(u => {
+                    if(u.id === appState.user.id) return;
+                    const type = (u.role==='service')?'service':(u.role==='business'?'business':'user');
+                    const m = L.marker([u.lat, u.lng], {icon: createIcon(type)}).addTo(appState.map);
+                    m.on('click', () => openModal(u));
+                });
+            } catch(e) {}
         }
 
         function createIcon(type) {
-            let className = 'custom-pin pin-user pulse-dot';
-            let html = '<i class="fa-solid fa-user"></i>';
-            let color = 'var(--primary)';
-            let size = 30;
-            if(type === 'service') { className = 'custom-pin pin-service pulse-dot'; html = '<i class="fa-solid fa-taxi"></i>'; color = 'var(--service)'; } 
-            else if (type === 'business') { className = 'custom-pin pin-business pulse-dot'; html = '<i class="fa-solid fa-store"></i>'; color = 'var(--business)'; }
-            return L.divIcon({ className: 'custom-pin-container', html: `<div class="${className}" style="background:${color}; width:${size}px; height:${size}px; display:flex; justify-content:center; align-items:center;">${html}</div>`, iconSize: [size, size], iconAnchor: [size/2, size/2] });
+            const cls = `custom-pin pin-${type} pulse-dot`;
+            const color = ROLE_COLORS[type];
+            const html = type==='user'?'<i class="fa-solid fa-user"></i>':(type==='service'?'<i class="fa-solid fa-taxi"></i>':'<i class="fa-solid fa-store"></i>');
+            return L.divIcon({className:'custom-pin-container', html:`<div class="${cls}" style="background:${color}; width:30px; height:30px; display:flex; justify-content:center; align-items:center;">${html}</div>`, iconSize:[30,30], iconAnchor:[15,15]});
         }
 
-        // --- MODAL LOGIC ---
-        async function openDetailModal(user) {
-            appState.currentSelection = user;
-            const modal = document.getElementById('detail-modal');
-            document.getElementById('modal-name').textContent = user.name;
-            let desc = user.role === 'user' ? 'Usuario normal' : (user.role === 'service' ? `Servicio: ${user.details}` : `Negocio: ${user.details}`);
-            document.getElementById('modal-desc').textContent = desc;
-            const iconDiv = document.getElementById('modal-pin-icon');
-            iconDiv.className = 'custom-pin pin-icon-large pulse-dot'; iconDiv.innerHTML = '';
-            if(user.role === 'user') { iconDiv.classList.add('pin-user'); iconDiv.style.background = 'var(--primary)'; iconDiv.innerHTML = '<i class="fa-solid fa-user"></i>'; } 
-            else if (user.role === 'service') { iconDiv.classList.add('pin-service'); iconDiv.style.background = 'var(--service)'; iconDiv.innerHTML = '<i class="fa-solid fa-taxi"></i>'; } 
-            else { iconDiv.classList.add('pin-business'); iconDiv.style.background = 'var(--business)'; iconDiv.innerHTML = '<i class="fa-solid fa-store"></i>'; }
-            const distMeters = getDistanceFromLatLonInMeters(appState.user.lat, appState.user.lng, user.lat, user.lng);
-            const timeMins = Math.round(distMeters / 80); 
-            document.getElementById('modal-dist').textContent = distMeters < 1000 ? `${distMeters} m` : `${(distMeters/1000).toFixed(1)} km`;
-            document.getElementById('modal-time').textContent = `${timeMins} min`;
-            const reviews = await db.getReviews(user.id);
-            renderReviewsInUI(reviews);
-            modal.classList.add('active');
+        // --- MODAL DETALLES ---
+        async function openModal(u) {
+            appState.currentSelection = u;
+            document.getElementById('modal-name').innerText = u.name;
+            document.getElementById('modal-desc').innerText = u.details;
+            
+            // Icono del Modal
+            const pinIcon = document.getElementById('modal-pin-icon');
+            pinIcon.className = `custom-pin pin-${u.role} pulse-dot`;
+            pinIcon.style.background = ROLE_COLORS[u.role];
+            pinIcon.innerHTML = `<i class="${ROLE_ICONS[u.role]}"></i>`;
+            pinIcon.style.width = "40px"; pinIcon.style.height = "40px"; pinIcon.style.fontSize = "1.2rem"; pinIcon.style.display = "flex"; pinIcon.style.justifyContent = "center"; pinIcon.style.alignItems = "center";
+
+            const dist = getDist(appState.user.lat, appState.user.lng, u.lat, u.lng);
+            document.getElementById('modal-dist').innerText = dist < 1000 ? dist+' m' : (dist/1000).toFixed(1)+' km';
+            document.getElementById('modal-time').innerText = Math.round(dist/80) + ' min';
+            
+            // Color del botón de chat según el rol del otro
+            const btnChat = document.getElementById('btn-open-chat');
+            btnChat.style.background = ROLE_COLORS[u.role];
+            btnChat.style.color = u.role === 'user' ? 'black' : 'white'; // Contraste
+
+            document.getElementById('detail-modal').classList.add('active');
+            
+            try {
+                const revs = await (await fetch(`/api/reviews/${u.id}`)).json();
+                const list = document.getElementById('reviews-list'); list.innerHTML='';
+                revs.forEach(r => list.innerHTML += `<div class="review-item"><b>${r.author_name}</b> <span class="stars">${'⭐'.repeat(r.stars)}</span><br>${r.comment}</div>`);
+            } catch(e) {}
         }
 
-        function closeModal() { document.getElementById('detail-modal').classList.remove('active'); appState.currentSelection = null; }
-
-        function renderReviewsInUI(reviews) {
-            const list = document.getElementById('reviews-list'); list.innerHTML = '';
-            let totalStars = 0; reviews.forEach(r => totalStars += parseInt(r.stars));
-            const avg = reviews.length ? (totalStars / reviews.length).toFixed(1) : "0.0";
-            document.getElementById('rating-avg').textContent = avg;
-            if(reviews.length === 0) { list.innerHTML = '<div style="color:#666; text-align:center; padding:10px;">Sin reseñas aún.</div>'; return; }
-            reviews.forEach(r => {
-                const starsStr = '⭐'.repeat(r.stars);
-                const div = document.createElement('div');
-                div.className = 'review-item';
-                div.innerHTML = `<div style="display:flex; justify-content:space-between;"><strong>${r.author_name || r.author}</strong> <span class="stars">${starsStr}</span></div><div style="margin-top:5px; color:#ccc;">${r.comment}</div>`;
-                list.appendChild(div);
-            });
-        }
-
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
         async function submitReview() {
-            if(!appState.currentSelection) return;
-            const stars = document.getElementById('rating-select').value;
-            const comment = document.getElementById('review-text').value;
-            if(!comment) { alert("Escribe un comentario"); return; }
-            await db.addReview(appState.currentSelection.id, appState.user.name, stars, comment);
-            document.getElementById('review-text').value = '';
-            const reviews = await db.getReviews(appState.currentSelection.id);
-            renderReviewsInUI(reviews);
-            alert("¡Reseña enviada!");
+            const txt = document.getElementById('review-text').value;
+            if(!txt) return;
+            await fetch('/api/review', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ targetId: appState.currentSelection.id, author: appState.user.name, stars: 5, comment: txt }) });
+            alert("Enviado"); document.getElementById('review-text').value = '';
         }
 
-        function contactAction() { if(!appState.currentSelection) return; alert(`Abriendo chat con ${appState.currentSelection.name}...`); }
-        function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) { var R = 6371; var dLat = deg2rad(lat2-lat1); var dLon = deg2rad(lon2-lon1); var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon/2) * Math.sin(dLon/2); var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); var d = R * c; return d * 1000; }
-        function deg2rad(deg) { return deg * (Math.PI/180); }
-        function toggleSOS() { appState.sosActive = !appState.sosActive; if(appState.sosActive) { document.body.classList.add('sos-active'); alert("¡MODO PÁNICO ACTIVADO!"); } else { document.body.classList.remove('sos-active'); } }
-        function logout() { location.reload(); }
+        // --- CHAT ---
+        function openChat(targetUser) {
+            appState.chatTarget = targetUser;
+            document.getElementById('chat-with-name').innerText = "Chat con " + targetUser.name;
+            document.getElementById('chat-messages').innerHTML = '<div style="text-align:center; color:#666; font-size:0.8rem; margin-top:10px;">Cargando mensajes...</div>';
+            document.getElementById('chat-modal').classList.add('active');
+            loadMessages();
+        }
 
-        setInterval(async () => {
-            if(appState.map && appState.user) {
-                appState.map.eachLayer((layer) => { if (layer instanceof L.Marker && layer !== appState.userMarker) appState.map.removeLayer(layer); });
-                await loadNearbyUsers(appState.user.lat, appState.user.lng);
-            }
-        }, 10000);
+        async function loadMessages() {
+            if(!appState.chatTarget) return;
+            try {
+                // Pasamos 'me' como query param para saber quien soy
+                const msgs = await (await fetch(`/api/messages/${appState.chatTarget.id}?me=${appState.user.id}`)).json();
+                const container = document.getElementById('chat-messages');
+                container.innerHTML = '';
+                msgs.forEach(m => {
+                    const isMe = m.sender_id === appState.user.id;
+                    const div = document.createElement('div');
+                    div.className = `msg ${isMe ? 'msg-own' : 'msg-other'}`;
+                    div.innerText = m.message;
+                    container.appendChild(div);
+                });
+                container.scrollTop = container.scrollHeight;
+            } catch(e) { console.error(e); }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const txt = input.value;
+            if(!txt || !appState.chatTarget) return;
+            
+            try {
+                await fetch('/api/messages', {
+                    method:'POST', 
+                    headers:{'Content-Type':'application/json'}, 
+                    body: JSON.stringify({ sender_id: appState.user.id, receiver_id: appState.chatTarget.id, message: txt })
+                });
+                input.value = '';
+                loadMessages();
+            } catch(e) { alert("Error enviando mensaje"); }
+        }
+
+        // Vincular el botón de contacto del modal con el chat
+        document.getElementById('btn-open-chat').addEventListener('click', () => {
+            closeModal('detail-modal');
+            openChat(appState.currentSelection);
+        });
+
+        // Enviar con Enter
+        document.getElementById('chat-input').addEventListener('keypress', (e) => {
+            if(e.key === 'Enter') sendMessage();
+        });
+
+        function toggleSOS() { document.body.classList.toggle('sos-active'); alert("MODO PÁNICO"); }
+        function getDist(l1, lo1, l2, lo2) { var R = 6371; var dLat = (l2-l1)*Math.PI/180; var dLo = (lo2-lo1)*Math.PI/180; var a = Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(l1*Math.PI/180)*Math.cos(l2*Math.PI/180)*Math.sin(dLo/2)*Math.sin(dLo/2); var c = 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); return R*c*1000; }
     </script>
 </body>
 </html>
