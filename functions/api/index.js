@@ -1,6 +1,7 @@
 export async function onRequest(context) {
   const { request, env } = context;
   const url = new URL(request.url);
+  const path = url.pathname;
   
   const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -9,18 +10,26 @@ export async function onRequest(context) {
     "Content-Type": "application/json",
   };
 
-  if (request.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  // Manejo de CORS para navegadores
+  if (request.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
 
   try {
-    // 1. Verificar Usuario
-    if (url.pathname.includes("check-user")) {
+    // Verificar que la DB esté vinculada (Binding 'DB')
+    if (!env.DB) {
+      return new Response(JSON.stringify({ error: "Falta el binding 'DB' en Cloudflare" }), { status: 500, headers: corsHeaders });
+    }
+
+    // --- RUTA: VERIFICAR USUARIO ---
+    if (path.endsWith("/check-user") && request.method === "GET") {
       const phone = url.searchParams.get("phone");
       const user = await env.DB.prepare("SELECT * FROM users WHERE phone = ?").bind(phone).first();
       return new Response(JSON.stringify({ found: !!user, user }), { headers: corsHeaders });
     }
 
-    // 2. Guardar/Actualizar Usuario
-    if (url.pathname.includes("user") && request.method === "POST") {
+    // --- RUTA: GUARDAR USUARIO ---
+    if (path.endsWith("/user") && request.method === "POST") {
       const data = await request.json();
       await env.DB.prepare(`
         INSERT INTO users (id, name, phone, role, lat, lng, details, created_at)
@@ -30,13 +39,21 @@ export async function onRequest(context) {
       return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
     }
 
-    // 3. Listar Usuarios
-    if (url.pathname.includes("users") && request.method === "GET") {
+    // --- RUTA: LISTAR USUARIOS ---
+    if (path.endsWith("/users") && request.method === "GET") {
       const { results } = await env.DB.prepare("SELECT * FROM users").all();
       return new Response(JSON.stringify(results), { headers: corsHeaders });
     }
 
-    return new Response("Not Found", { status: 404 });
+    // --- RUTA: RESEÑAS ---
+    if (path.includes("/reviews/") && request.method === "GET") {
+      const targetId = path.split("/").pop();
+      const { results } = await env.DB.prepare("SELECT * FROM reviews WHERE target_id = ?").bind(targetId).all();
+      return new Response(JSON.stringify(results), { headers: corsHeaders });
+    }
+
+    return new Response(JSON.stringify({ error: "Ruta no encontrada: " + path }), { status: 404, headers: corsHeaders });
+
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders });
   }
