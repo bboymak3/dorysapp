@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>DORYSAPP - Red Social Urbana</title>
     <link rel="manifest" href="/manifest.json">
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -30,7 +31,7 @@
         .btn-enter { background: var(--primary); color: black; }
         .hidden { display: none !important; }
 
-        /* HEADER & UI */
+        /* HEADER */
         #user-info-bar { position: fixed; top: 10px; left: 10px; right: 10px; background: rgba(30,30,30,0.9); backdrop-filter: blur(5px); padding: 10px 15px; border-radius: 30px; z-index: 2000; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
         #header-icon-container { display: flex; align-items: center; gap: 10px; cursor: pointer; }
         .header-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #333; border: 2px solid var(--primary); }
@@ -38,41 +39,8 @@
         /* MAPA */
         #map { width: 100%; height: 100vh; z-index: 1; }
         #sos-btn { position: fixed; bottom: 90px; left: 20px; width: 60px; height: 60px; border-radius: 50%; background: var(--danger); color: white; border: 4px solid white; font-size: 24px; display: flex; justify-content: center; align-items: center; cursor: pointer; z-index: 2000; animation: pulse-red 2s infinite; }
-        
-        /* BOTÓN LISTA (NUEVO) */
-        #list-toggle-btn {
-            position: fixed; bottom: 90px; right: 20px;
-            width: 60px; height: 60px; border-radius: 50%;
-            background: var(--surface); color: white; border: 2px solid var(--primary);
-            font-size: 24px; display: flex; justify-content: center; align-items: center;
-            cursor: pointer; z-index: 2000; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-        }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(231, 76, 60, 0); } 100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); } }
 
-        /* LISTA LATERAL (SIDEBAR) */
-        #users-sidebar {
-            position: fixed; top: 0; right: -300px; width: 300px; height: 100%;
-            background: var(--surface); z-index: 2100;
-            box-shadow: -5px 0 15px rgba(0,0,0,0.5);
-            transition: right 0.3s ease;
-            display: flex; flex-direction: column;
-        }
-        #users-sidebar.open { right: 0; }
-        .sidebar-header { padding: 20px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
-        .users-list-container { flex: 1; overflow-y: auto; padding: 10px; }
-        
-        /* ITEMS DE LA LISTA */
-        .user-list-item {
-            display: flex; align-items: center; gap: 10px; padding: 10px;
-            background: rgba(255,255,255,0.05); margin-bottom: 10px; border-radius: 10px;
-            cursor: pointer; transition: 0.2s;
-        }
-        .user-list-item:hover { background: rgba(255,255,255,0.1); }
-        .list-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; background: #333; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; color: #666; }
-        .list-info { flex: 1; }
-        .list-name { font-weight: bold; font-size: 1rem; }
-        .list-details { font-size: 0.8rem; color: var(--text-sec); display: flex; justify-content: space-between; }
-        .list-dist { color: var(--primary); }
-        
         /* MODALES */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2500; display: none; justify-content: center; align-items: flex-end; }
         .modal-overlay.active { display: flex; animation: slideUp 0.3s ease; }
@@ -80,14 +48,16 @@
         .modal-header { display: flex; justify-content: space-between; margin-bottom: 15px; }
         .close-modal { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
 
+        /* FICHA DE PERFIL (NUEVO DISEÑO) */
         .profile-header { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #333; }
-        .profile-big-avatar { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; background: #333; display: flex; justify-content: center; align-items: center; font-size: 2rem; color: #666; }
+        .profile-big-avatar { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); background: #333; display: flex; justify-content: center; align-items: center; font-size: 2rem; color: #666; }
         .profile-info h2 { font-size: 1.4rem; margin-bottom: 5px; }
         .status-badge { display: inline-block; padding: 4px 8px; border-radius: 10px; font-size: 0.75rem; margin-top: 5px; background: #444; }
         .status-online { background: rgba(46, 204, 113, 0.2); color: var(--primary); }
         .status-offline { background: rgba(170, 170, 170, 0.2); color: #aaa; }
         .profile-bio { color: var(--text-sec); font-style: italic; margin-bottom: 15px; line-height: 1.4; }
 
+        /* CHAT */
         #chat-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; min-height: 200px; }
         .msg { max-width: 75%; padding: 10px; border-radius: 15px; font-size: 0.9rem; }
         .msg-own { align-self: flex-end; background: var(--primary); color: black; border-bottom-right-radius: 2px; }
@@ -95,12 +65,14 @@
         .chat-input-area { display: flex; gap: 10px; margin-top: auto; }
         .chat-input-area input { flex: 1; padding: 10px; border-radius: 20px; border: none; background: #333; color: white; }
 
+        /* NOTIFICACION */
         #notification-overlay { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--surface); padding: 15px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.5); z-index: 4000; display: none; flex-direction: column; align-items: center; width: 90%; max-width: 350px; border: 1px solid var(--primary); animation: slideDown 0.3s ease; }
         #notification-overlay.active { display: flex; }
         .notif-actions { display: flex; gap: 10px; width: 100%; margin-top: 15px; }
         .btn-accept { flex: 1; padding: 8px; background: var(--primary); border: none; border-radius: 5px; cursor: pointer; color: black; font-weight: bold; }
         .btn-reject { flex: 1; padding: 8px; background: #333; border: none; border-radius: 5px; cursor: pointer; color: white; }
 
+        /* DETALLES */
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         .stat-box { background: #2a2a2a; padding: 10px; border-radius: 10px; text-align: center; }
         .review-item { background: #252525; padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 0.9rem; }
@@ -113,8 +85,7 @@
         .pulse-dot::after { content: ''; position: absolute; width: 100%; height: 100%; background: inherit; border-radius: inherit; opacity: 0.6; animation: pulse-ring 2s infinite; z-index: -1; }
         @keyframes pulse-ring { 0% { transform: scale(1); opacity: 0.6; } 100% { transform: scale(2.5); opacity: 0; } }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1); } }
-        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(231, 76, 60, 0); } 100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); } }
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
 <body>
@@ -169,23 +140,9 @@
     </div>
 
     <div id="map"></div>
-    
-    <!-- BOTONES FLOTANTES -->
     <button id="sos-btn" onclick="toggleSOS()" class="hidden"><i class="fa-solid fa-bell"></i></button>
-    <button id="list-toggle-btn" class="hidden" onclick="toggleSidebar()"><i class="fa-solid fa-list"></i></button>
 
-    <!-- SIDEBAR LISTA -->
-    <div id="users-sidebar">
-        <div class="sidebar-header">
-            <h3>Cercanos</h3>
-            <button onclick="toggleSidebar()" style="background:none; border:none; color:white; font-size:1.5rem;">&times;</button>
-        </div>
-        <div id="users-list-container">
-            <!-- Lista generada por JS -->
-        </div>
-    </div>
-
-    <!-- MODAL PERFIL PROPIO -->
+    <!-- MODAL PERFIL PROPIO (EDICIÓN) -->
     <div class="modal-overlay" id="my-profile-modal">
         <div class="modal-card">
             <div class="modal-header"><h3>Mi Perfil</h3><button class="close-modal" onclick="closeModal('my-profile-modal')">&times;</button></div>
@@ -199,25 +156,32 @@
         </div>
     </div>
 
-    <!-- MODAL DETALLES -->
+    <!-- MODAL DETALLES (PERFIL AJENO) -->
     <div class="modal-overlay" id="detail-modal">
         <div class="modal-card">
             <div class="modal-header">
                 <button class="close-modal" onclick="closeModal('detail-modal')" style="background:none; border:none; color:white; font-size:1.5rem;">&times;</button>
             </div>
+            
+            <!-- FICHA VISUAL MEJORADA -->
             <div class="profile-header">
-                <div id="modal-avatar" class="profile-big-avatar"><i class="fa-solid fa-user"></i></div>
+                <div id="modal-avatar" class="profile-big-avatar">
+                    <i class="fa-solid fa-user"></i>
+                </div>
                 <div class="profile-info">
                     <h2 id="modal-name">Nombre</h2>
                     <span id="modal-status-badge" class="status-badge status-offline">Desconectado</span>
                     <p id="modal-role-text" style="color:var(--text-sec); font-size:0.9rem;">Rol</p>
                 </div>
             </div>
+            
             <p id="modal-bio" class="profile-bio">Sin biografía...</p>
+
             <div style="margin-bottom:20px;">
                 <div style="background:#2a2a2a; padding:10px; border-radius:10px; text-align:center; display:inline-block; width:48%; margin-right:2%"><b id="modal-dist">0 m</b><br><small>Distancia</small></div>
                 <div style="background:#2a2a2a; padding:10px; border-radius:10px; text-align:center; display:inline-block; width:48%"><b id="modal-time">0 min</b><br><small>Tiempo</small></div>
             </div>
+
             <h4>Reseñas</h4>
             <div id="reviews-list" style="margin-top:10px; max-height:150px; overflow-y:auto;"></div>
             <div style="margin-top:15px; display:flex; gap:10px;">
@@ -252,7 +216,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const API_URL = ""; 
-        const appState = { user: null, map: null, userMarker: null, currentSelection: null, chatTarget: null, lastMessageId: 0, notificationUser: null, sidebarOpen: false };
+        const appState = { user: null, map: null, userMarker: null, currentSelection: null, chatTarget: null, lastMessageId: 0, notificationUser: null };
         
         const ROLE_ICONS = { 'user': 'fa-solid fa-user', 'service': 'fa-solid fa-taxi', 'business': 'fa-solid fa-store' };
         const ROLE_COLORS = { 'user': 'var(--primary)', 'service': 'var(--service)', 'business': 'var(--business)' };
@@ -292,19 +256,25 @@
         }
         function showLogin() { document.getElementById('register-view').classList.add('hidden'); document.getElementById('login-view').classList.remove('hidden'); }
 
-        // --- APP & LISTA ---
+        // --- APP & PERFIL ---
         async function enterApp(user) {
             appState.user = user;
+            // Actualizar Header
             const headerAvatar = document.getElementById('header-avatar');
-            if(user.avatar_url) { headerAvatar.src = user.avatar_url; headerAvatar.style.display = 'block'; }
+            if(user.avatar_url) headerAvatar.src = user.avatar_url;
+            else headerAvatar.style.display = 'none'; // Ocultar si no hay foto
             
+            const headerIcon = document.getElementById('header-icon-container').querySelector('i');
+            headerIcon.className = ROLE_ICONS[user.role] || 'fa-solid fa-user';
+            headerIcon.style.color = ROLE_COLORS[user.role] || 'var(--primary)';
+
             document.getElementById('display-name').innerText = user.name;
             document.getElementById('display-role').innerText = user.role === 'business' ? 'Negocio' : (user.role === 'service' ? 'Servicio' : 'Usuario');
             document.getElementById('auth-screen').classList.add('hidden');
             document.getElementById('user-info-bar').classList.remove('hidden');
             document.getElementById('sos-btn').classList.remove('hidden');
-            document.getElementById('list-toggle-btn').classList.remove('hidden');
 
+            // Marcar como ONLINE
             user.status = 'online';
             await fetch('/api/user', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(user) });
 
@@ -312,124 +282,19 @@
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(appState.map);
 
             if("geolocation" in navigator) {
-                navigator.geolocation.getCurrentPosition((pos) => {
-                    updateUserLocation(pos.coords.latitude, pos.coords.longitude);
-                });
-                // ACTUALIZACIÓN AUTOMÁTICA DE UBICACIÓN AL MOVERSE
-                navigator.geolocation.watchPosition(async (pos) => {
-                    if(appState.user) {
-                        appState.user.lat = pos.coords.latitude;
-                        appState.user.lng = pos.coords.longitude;
-                        await fetch('/api/user', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(appState.user) });
-                        
-                        // Mover mi marcador
-                        if(appState.userMarker) {
-                            appState.userMarker.setLatLng([pos.coords.latitude, pos.coords.longitude]);
-                        } else {
-                            appState.userMarker = L.marker([pos.coords.latitude, pos.coords.longitude], {icon: createIcon('user')}).addTo(appState.map).bindPopup("Tú");
-                        }
-                        loadSidebarList(); // Actualizar lista si me muevo
-                    }
+                navigator.geolocation.getCurrentPosition(async (pos) => {
+                    const { latitude, longitude } = pos.coords;
+                    user.lat = latitude; user.lng = longitude;
+                    await fetch('/api/user', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(user) });
+                    appState.map.setView([latitude, longitude], 15);
+                    if(appState.userMarker) appState.map.removeLayer(appState.userMarker);
+                    appState.userMarker = L.marker([latitude, longitude], {icon: createIcon('user')}).addTo(appState.map).bindPopup("Tú");
+                    loadUsers();
+                    startNotificationChecker();
                 });
             }
         }
 
-        function updateUserLocation(lat, lng) {
-            appState.user.lat = lat; appState.user.lng = lng;
-            fetch('/api/user', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(appState.user) });
-            appState.map.setView([lat, lng], 15);
-            if (appState.userMarker) appState.map.removeLayer(appState.userMarker);
-            appState.userMarker = L.marker([lat, lng], {icon: createIcon('user')}).addTo(appState.map).bindPopup("Tú");
-            loadUsers();
-            loadSidebarList();
-            startNotificationChecker();
-        }
-
-        function toggleSidebar() {
-            appState.sidebarOpen = !appState.sidebarOpen;
-            const sb = document.getElementById('users-sidebar');
-            if(appState.sidebarOpen) {
-                sb.classList.add('open');
-                loadSidebarList(); // Refrescar lista al abrir
-            } else {
-                sb.classList.remove('open');
-            }
-        }
-
-        // --- RENDERIZAR LISTA LATERAL ---
-        async function loadSidebarList() {
-            if(!appState.sidebarOpen) return;
-            const container = document.getElementById('users-list-container');
-            container.innerHTML = '<div style="text-align:center; color:#666; padding:20px;">Cargando...</div>';
-            
-            try {
-                const users = await (await fetch('/api/users')).json();
-                container.innerHTML = '';
-                
-                // Ordenar por distancia
-                const usersWithDist = users.map(u => {
-                    if(u.id === appState.user.id) return null;
-                    const dist = getDist(appState.user.lat, appState.user.lng, u.lat, u.lng);
-                    return { ...u, dist: dist };
-                }).filter(u => u !== null).sort((a,b) => a.dist - b.dist);
-
-                if(usersWithDist.length === 0) {
-                    container.innerHTML = '<div style="text-align:center; color:#666; padding:20px;">No hay nadie cerca.</div>';
-                    return;
-                }
-
-                usersWithDist.forEach(u => {
-                    const div = document.createElement('div');
-                    div.className = 'user-list-item';
-                    
-                    let avatarHtml = `<i class="fa-solid fa-user"></i>`;
-                    if(u.avatar_url) avatarHtml = `<img src="${u.avatar_url}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
-                    if(u.role === 'service') avatarHtml = `<i class="fa-solid fa-taxi" style="color:var(--service)"></i>`;
-                    if(u.role === 'business') avatarHtml = `<i class="fa-solid fa-store" style="color:var(--business)"></i>`;
-
-                    div.innerHTML = `
-                        <div class="list-avatar">${avatarHtml}</div>
-                        <div class="list-info">
-                            <div class="list-name">${u.name}</div>
-                            <div class="list-details">
-                                <span>${u.role === 'service' ? u.details : (u.role === 'business' ? 'Negocio' : 'Usuario')}</span>
-                                <span class="list-dist">${u.dist < 1000 ? Math.round(u.dist)+'m' : (u.dist/1000).toFixed(1)+'km'}</span>
-                            </div>
-                        </div>
-                    `;
-                    div.onclick = () => {
-                        openModal(u);
-                        toggleSidebar(); // Cerrar sidebar al elegir alguien
-                    };
-                    container.appendChild(div);
-                });
-            } catch(e) { console.error(e); }
-        }
-
-        // --- MAPA ---
-        async function loadUsers() {
-            try {
-                const users = await (await fetch('/api/users')).json();
-                users.forEach(u => {
-                    if(u.id === appState.user.id) return;
-                    const type = (u.role==='service')?'service':(u.role==='business'?'business':'user');
-                    // Evitar duplicados en el mapa (simple check)
-                    if(!appState.map._layers[L.Util.stamp(u.lat + ',' + u.lng)]) {
-                        const m = L.marker([u.lat, u.lng], {icon: createIcon(type)}).addTo(appState.map);
-                        m.on('click', () => openModal(u));
-                    }
-                });
-            } catch(e) {}
-        }
-
-        function createIcon(type) {
-            const cls = `custom-pin pin-${type} pulse-dot`;
-            const color = ROLE_COLORS[type];
-            const html = type==='user'?'<i class="fa-solid fa-user"></i>':(type==='service'?'<i class="fa-solid fa-taxi"></i>':'<i class="fa-solid fa-store"></i>');
-            return L.divIcon({className:'custom-pin-container', html:`<div class="${cls}" style="background:${color}; width:30px; height:30px; display:flex; justify-content:center; align-items:center;">${html}</div>`, iconSize:[30,30], iconAnchor:[15,15]});
-        }
-
-        // --- MODAL & PERFIL ---
         function openMyProfile() {
             if(!appState.user) return;
             document.getElementById('edit-bio').value = appState.user.bio || "";
@@ -441,24 +306,63 @@
         async function saveMyProfile() {
             const newBio = document.getElementById('edit-bio').value;
             const newAvatar = document.getElementById('edit-avatar-input').value;
-            appState.user.bio = newBio; appState.user.avatar_url = newAvatar;
-            if(newAvatar) { document.getElementById('header-avatar').src = newAvatar; document.getElementById('header-avatar').style.display = 'block'; }
+            
+            // Actualizar localmente
+            appState.user.bio = newBio;
+            appState.user.avatar_url = newAvatar;
+            if(newAvatar) {
+                document.getElementById('header-avatar').src = newAvatar;
+                document.getElementById('header-avatar').style.display = 'block';
+            }
+
+            // Enviar al servidor
             try {
-                await fetch('/api/update-profile', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: appState.user.id, bio: newBio, avatar_url: newAvatar }) });
-                alert("Perfil actualizado"); closeModal('my-profile-modal');
-            } catch(e) { alert("Error guardando"); }
+                await fetch('/api/update-profile', {
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ id: appState.user.id, bio: newBio, avatar_url: newAvatar })
+                });
+                alert("Perfil actualizado");
+                closeModal('my-profile-modal');
+            } catch(e) { alert("Error guardando perfil"); }
         }
 
+        // --- MAPA Y PINS ---
+        async function loadUsers() {
+            try {
+                const users = await (await fetch('/api/users')).json();
+                users.forEach(u => {
+                    if(u.id === appState.user.id) return;
+                    const type = (u.role==='service')?'service':(u.role==='business'?'business':'user');
+                    const m = L.marker([u.lat, u.lng], {icon: createIcon(type)}).addTo(appState.map);
+                    m.on('click', () => openModal(u));
+                });
+            } catch(e) {}
+        }
+
+        function createIcon(type) {
+            const cls = `custom-pin pin-${type} pulse-dot`;
+            const color = ROLE_COLORS[type];
+            const html = type==='user'?'<i class="fa-solid fa-user"></i>':(type==='service'?'<i class="fa-solid fa-taxi"></i>':'<i class="fa-solid fa-store"></i>');
+            return L.divIcon({className:'custom-pin-container', html:`<div class="${cls}" style="background:${color}; width:30px; height:30px; display:flex; justify-content:center; align-items:center;">${html}</div>`, iconSize:[30,30], iconAnchor:[15,15]});
+        }
+
+        // --- MODAL DETALLES ---
         async function openModal(u) {
             appState.currentSelection = u;
             document.getElementById('modal-name').innerText = u.name;
-            document.getElementById('modal-bio').innerText = u.bio || "Sin biografía.";
-            document.getElementById('modal-role-text').innerText = u.role === 'business' ? 'Negocio: ' + u.details : (u.role === 'service' ? 'Servicio: ' + u.details : 'Usuario Normal');
+            document.getElementById('modal-bio').innerText = u.bio || "Este usuario no tiene biografía aún.";
+            document.getElementById('modal-role-text').innerText = u.role === 'business' ? 'Negocio' : (u.role === 'service' ? 'Servicio de: ' + u.details : 'Usuario Normal');
             
+            // Foto
             const avatarContainer = document.getElementById('modal-avatar');
-            if(u.avatar_url) { avatarContainer.innerHTML = `<img src="${u.avatar_url}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`; }
-            else { avatarContainer.innerHTML = `<i class="fa-solid fa-user"></i>`; }
+            if(u.avatar_url) {
+                avatarContainer.innerHTML = `<img src="${u.avatar_url}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+            } else {
+                avatarContainer.innerHTML = `<i class="fa-solid fa-user"></i>`;
+            }
 
+            // Estado
             const badge = document.getElementById('modal-status-badge');
             badge.className = 'status-badge ' + (u.status === 'online' ? 'status-online' : 'status-offline');
             badge.innerText = u.status === 'online' ? '🟢 En línea' : '⚫ Desconectado';
@@ -466,7 +370,6 @@
             const dist = getDist(appState.user.lat, appState.user.lng, u.lat, u.lng);
             document.getElementById('modal-dist').innerText = dist < 1000 ? dist+' m' : (dist/1000).toFixed(1)+' km';
             document.getElementById('modal-time').innerText = Math.round(dist/80) + ' min';
-            
             const btnChat = document.getElementById('btn-open-chat');
             btnChat.style.background = ROLE_COLORS[u.role];
             btnChat.style.color = u.role === 'user' ? 'black' : 'white';
@@ -487,7 +390,7 @@
             alert("Enviado"); document.getElementById('review-text').value = '';
         }
 
-        // --- CHAT ---
+        // --- CHAT & NOTIFICACIONES ---
         function openChat(targetUser) {
             appState.chatTarget = targetUser;
             document.getElementById('chat-with-name').innerText = "Chat con " + targetUser.name;
@@ -502,7 +405,9 @@
             try {
                 const msgs = await (await fetch(`/api/messages/${appState.chatTarget.id}?me=${appState.user.id}`)).json();
                 const container = document.getElementById('chat-messages');
-                if(msgs.length > 0 && msgs[msgs.length-1].id > appState.lastMessageId) appState.lastMessageId = msgs[msgs.length-1].id;
+                if(msgs.length > 0 && msgs[msgs.length-1].id > appState.lastMessageId) {
+                    appState.lastMessageId = msgs[msgs.length-1].id;
+                }
                 container.innerHTML = '';
                 msgs.forEach(m => {
                     const isMe = m.sender_id === appState.user.id;
@@ -529,7 +434,6 @@
         document.getElementById('btn-open-chat').addEventListener('click', () => { closeModal('detail-modal'); openChat(appState.currentSelection); });
         document.getElementById('chat-input').addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMessage(); });
 
-        // --- NOTIFICACIONES ---
         async function startNotificationChecker() {
             setInterval(async () => {
                 if(!document.getElementById('chat-modal').classList.contains('active')) {
@@ -553,11 +457,16 @@
             const audio = document.getElementById('notif-sound');
             if(audio) audio.play().catch(e => console.log("Audio blocked"));
         }
+
         function dismissNotification() { document.getElementById('notification-overlay').classList.remove('active'); }
         function acceptNotification() {
             dismissNotification();
-            if(appState.notificationUser) { appState.currentSelection = appState.notificationUser; openChat(appState.notificationUser); }
+            if(appState.notificationUser) {
+                appState.currentSelection = appState.notificationUser; 
+                openChat(appState.notificationUser);
+            }
         }
+
         function toggleSOS() { document.body.classList.toggle('sos-active'); alert("MODO PÁNICO"); }
         function getDist(l1, lo1, l2, lo2) { var R = 6371; var dLat = (l2-l1)*Math.PI/180; var dLo = (lo2-lo1)*Math.PI/180; var a = Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(l1*Math.PI/180)*Math.cos(l2*Math.PI/180)*Math.sin(dLo/2)*Math.sin(dLo/2); var c = 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); return R*c*1000; }
     </script>
