@@ -8,175 +8,204 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root { --primary: #2ecc71; --dark: #121212; --card: #1e1e1e; }
-        body { margin: 0; padding: 0; background: var(--dark); color: white; font-family: 'Segoe UI', sans-serif; }
+        body { margin: 0; padding: 0; background: var(--dark); color: white; font-family: sans-serif; overflow: hidden; }
         #map { width: 100%; height: 100vh; position: absolute; z-index: 1; }
 
-        /* MODAL DE FICHA DETALLADA */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9000; display: none; justify-content: center; align-items: flex-end; }
+        /* INTERFAZ SUPERIOR */
+        #top-ui { position: fixed; top: 10px; left: 10px; right: 10px; z-index: 5000; display: flex; justify-content: space-between; pointer-events: none; }
+        .glass-btn { background: rgba(30,30,30,0.9); padding: 10px 15px; border-radius: 20px; border: 1px solid #444; color: white; pointer-events: auto; cursor: pointer; }
+
+        /* LISTA LATERAL */
+        #side-list { position: fixed; top: 70px; right: 10px; z-index: 4000; width: 180px; background: rgba(30,30,30,0.85); border-radius: 15px; padding: 10px; max-height: 40vh; overflow-y: auto; border: 1px solid #333; backdrop-filter: blur(5px); }
+        .user-item { padding: 8px; border-bottom: 1px solid #444; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.8rem; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); }
+
+        /* MODALES */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9000; display: none; justify-content: center; align-items: flex-end; }
         .modal-overlay.active { display: flex; }
-        .modal-card { background: var(--card); width: 100%; max-width: 500px; border-radius: 20px 20px 0 0; padding: 25px; animation: slideUp 0.3s ease; position: relative; }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-
-        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; color: #666; }
-        .profile-header { display: flex; gap: 15px; align-items: center; margin-bottom: 20px; }
-        .avatar-circle { width: 60px; height: 60px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; }
-        .badge { background: #333; padding: 4px 10px; border-radius: 10px; font-size: 11px; font-weight: bold; color: var(--primary); text-transform: uppercase; }
+        .modal-card { background: var(--card); width: 100%; max-width: 500px; border-radius: 20px 20px 0 0; padding: 25px; position: relative; max-height: 90vh; overflow-y: auto; }
         
-        .info-box { background: #2a2a2a; padding: 15px; border-radius: 12px; margin: 15px 0; }
-        .btn-action { width: 100%; padding: 14px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; display: block; text-align: center; text-decoration: none; margin-bottom: 10px; }
+        input, textarea, select { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #444; background: #2a2a2a; color: white; }
+        .btn-main { width: 100%; padding: 14px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; display: block; text-align: center; text-decoration: none; margin-top: 10px; }
 
-        /* AUTH & UI */
-        #auth-screen { position: fixed; inset: 0; background: var(--dark); z-index: 10000; display: flex; justify-content: center; align-items: center; }
-        .box { background: var(--card); padding: 30px; border-radius: 15px; text-align: center; width: 90%; max-width: 350px; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #333; background: #2a2a2a; color: white; }
+        /* CHAT BOX */
+        #chat-window { height: 250px; overflow-y: auto; background: #121212; border-radius: 10px; padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
+        .msg { padding: 8px 12px; border-radius: 10px; max-width: 80%; font-size: 0.9rem; }
+        .msg.me { background: var(--primary); color: black; align-self: flex-end; }
+        .msg.them { background: #333; color: white; align-self: flex-start; }
+
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-    <div id="auth-screen">
-        <div class="box">
+    <div id="auth-screen" style="position:fixed; inset:0; background:var(--dark); z-index:10000; display:flex; justify-content:center; align-items:center;">
+        <div class="box" style="text-align:center; width:90%; max-width:350px;">
             <h2 style="color:var(--primary)">DORYSAPP</h2>
-            <div id="login-view">
-                <input type="tel" id="login-phone" placeholder="Ingresa tu teléfono">
-                <button class="btn-action" style="background:var(--primary); color:black;" onclick="checkUser()">ENTRAR</button>
-            </div>
-            <div id="register-view" class="hidden">
-                <input type="text" id="reg-name" placeholder="Tu nombre y apellido">
-                <input type="text" id="reg-details" placeholder="¿Qué haces? (Taxi, Vendedor...)">
-                <button class="btn-action" style="background:var(--primary); color:black;" onclick="registerUser()">CREAR CUENTA</button>
-            </div>
+            <input type="tel" id="login-phone" placeholder="Tu teléfono">
+            <button class="btn-main" style="background:var(--primary);" onclick="checkUser()">ENTRAR</button>
         </div>
+    </div>
+
+    <div id="top-ui" class="hidden">
+        <div class="glass-btn" onclick="openEditProfile()"><i class="fas fa-user-edit"></i> Mi Perfil</div>
+        <div class="glass-btn"><i class="fas fa-users"></i> <span id="online-count">0</span></div>
+    </div>
+
+    <div id="side-list" class="hidden">
+        <div id="user-list-content"></div>
     </div>
 
     <div id="map"></div>
 
     <div class="modal-overlay" id="user-modal">
         <div class="modal-card">
-            <span class="close-btn" onclick="closeModal()">&times;</span>
-            <div class="profile-header">
-                <div class="avatar-circle" id="m-avatar"><i class="fas fa-user"></i></div>
-                <div>
-                    <h2 id="m-name" style="margin:0">Nombre</h2>
-                    <span id="m-role" class="badge">Usuario</span>
-                </div>
-            </div>
+            <h2 id="m-name">Nombre</h2>
+            <span id="m-role" style="color:var(--primary); font-size:0.8rem; font-weight:bold;"></span>
+            <p id="m-details" style="margin: 15px 0; color:#aaa;"></p>
             
-            <div class="info-box">
-                <small style="color:#888">SOBRE MÍ / SERVICIOS</small>
-                <p id="m-details" style="margin-top:5px; line-height:1.4;">Cargando detalles...</p>
-            </div>
-
-            <div style="display:flex; gap:10px; margin-bottom:15px;">
-                <div style="flex:1; background:#2a2a2a; padding:10px; border-radius:10px; text-align:center;">
-                    <small style="color:#888">Distancia</small><br><b id="m-dist">0m</b>
-                </div>
-                <div style="flex:1; background:#2a2a2a; padding:10px; border-radius:10px; text-align:center;">
-                    <small style="color:#888">Estado</small><br><b style="color:var(--primary)">Activo</b>
+            <hr border="0" style="border-top:1px solid #333; margin:15px 0;">
+            
+            <div id="chat-section">
+                <div id="chat-window"></div>
+                <div style="display:flex; gap:5px;">
+                    <input type="text" id="chat-input" placeholder="Escribe un mensaje...">
+                    <button onclick="sendMessage()" style="background:var(--primary); border:none; width:50px; border-radius:8px;"><i class="fas fa-paper-plane"></i></button>
                 </div>
             </div>
 
-            <a href="#" id="m-call" class="btn-action" style="background:#333; color:white;">LLAMAR AHORA</a>
-            <button class="btn-action" style="background:var(--primary); color:black;" onclick="alert('Chat próximamente')">ENVIAR MENSAJE</button>
+            <a href="#" id="m-call" class="btn-main" style="background:#333; color:white; margin-top:15px;"><i class="fas fa-phone"></i> LLAMAR POR TELÉFONO</a>
+            <button class="btn-main" style="background:none; color:#666;" onclick="closeModals()">CERRAR</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="edit-modal">
+        <div class="modal-card">
+            <h3>Mi Perfil</h3>
+            <input type="text" id="edit-name" placeholder="Nombre">
+            <input type="text" id="edit-role" placeholder="¿Qué ofreces? (Ej: Taxi, Pizza)">
+            <textarea id="edit-bio" placeholder="Breve descripción sobre ti..."></textarea>
+            <button class="btn-main" style="background:var(--primary);" onclick="saveProfile()">GUARDAR</button>
+            <button class="btn-main" style="background:none; color:#666;" onclick="closeModals()">CANCELAR</button>
         </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        let app = { user: null, map: null, markers: {}, myMarker: null };
+        let app = { user: null, map: null, markers: {}, activeChatPartner: null, chatInterval: null };
 
         async function checkUser() {
             const phone = document.getElementById('login-phone').value;
+            if(!phone) return;
             const res = await fetch(`/api/check-user?phone=${phone}`);
             const data = await res.json();
             if(data.found) startApp(data.user);
             else {
-                document.getElementById('login-view').classList.add('hidden');
-                document.getElementById('register-view').classList.remove('hidden');
+                const newUser = { id: 'U'+Date.now(), name: 'Nuevo Usuario', phone: phone, role: 'Usuario', lat:0, lng:0 };
+                await fetch('/api/user', { method: 'POST', body: JSON.stringify(newUser) });
+                startApp(newUser);
             }
-        }
-
-        async function registerUser() {
-            const user = {
-                id: 'U' + Math.random().toString(36).substr(2, 9),
-                name: document.getElementById('reg-name').value,
-                phone: document.getElementById('login-phone').value,
-                details: document.getElementById('reg-details').value,
-                role: 'Socio', lat: 0, lng: 0
-            };
-            await fetch('/api/user', { method: 'POST', body: JSON.stringify(user) });
-            startApp(user);
         }
 
         function startApp(userData) {
             app.user = userData;
             document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('top-ui').classList.remove('hidden');
+            document.getElementById('side-list').classList.remove('hidden');
+
             app.map = L.map('map', { zoomControl: false }).setView([0,0], 2);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(app.map);
 
             navigator.geolocation.watchPosition(pos => {
                 const { latitude, longitude } = pos.coords;
                 app.user.lat = latitude; app.user.lng = longitude;
-
-                if(!app.myMarker) {
-                    app.myMarker = L.circleMarker([latitude, longitude], { color: '#3498db', radius: 10, fillOpacity: 0.9 }).addTo(app.map);
-                    app.myMarker.on('click', () => openDetails(app.user));
-                    app.map.setView([latitude, longitude], 15);
-                } else {
-                    app.myMarker.setLatLng([latitude, longitude]);
-                }
                 fetch('/api/user', { method: 'POST', body: JSON.stringify(app.user) });
             }, null, { enableHighAccuracy: true });
 
-            setInterval(updateOthers, 5000);
-            updateOthers();
+            setInterval(updateWorld, 5000);
+            updateWorld();
         }
 
-        async function updateOthers() {
+        async function updateWorld() {
             try {
                 const res = await fetch('/api/users');
                 const users = await res.json();
-                const serverIds = users.map(u => u.id);
+                document.getElementById('online-count').innerText = users.length;
+                
+                const listContent = document.getElementById('user-list-content');
+                listContent.innerHTML = '';
+                const ids = users.map(u => u.id);
 
-                // Borrar los que se fueron
-                for (let id in app.markers) {
-                    if (!serverIds.includes(id)) { app.map.removeLayer(app.markers[id]); delete app.markers[id]; }
-                }
+                for(let id in app.markers) { if(!ids.includes(id)) { app.map.removeLayer(app.markers[id]); delete app.markers[id]; } }
 
-                // Crear o mover
                 users.forEach(u => {
-                    if (u.id === app.user.id) return;
-                    if (!app.markers[u.id]) {
-                        app.markers[u.id] = L.marker([u.lat, u.lng]).addTo(app.map);
-                        app.markers[u.id].on('click', () => openDetails(u));
-                    } else {
-                        app.markers[u.id].setLatLng([u.lat, u.lng]);
-                    }
+                    if(u.id === app.user.id) return;
+                    // Lista
+                    const div = document.createElement('div');
+                    div.className = 'user-item';
+                    div.innerHTML = `<div class="dot"></div> <b>${u.name}</b>`;
+                    div.onclick = () => { app.map.flyTo([u.lat, u.lng], 16); openUserModal(u); };
+                    listContent.appendChild(div);
+                    // Mapa
+                    if(!app.markers[u.id]) {
+                        app.markers[u.id] = L.marker([u.lat, u.lng]).addTo(app.map).on('click', () => openUserModal(u));
+                    } else app.markers[u.id].setLatLng([u.lat, u.lng]);
                 });
-            } catch (e) {}
+            } catch(e){}
         }
 
-        function openDetails(u) {
+        function openUserModal(u) {
+            app.activeChatPartner = u;
             document.getElementById('m-name').innerText = u.name;
-            document.getElementById('m-role').innerText = u.role || 'Usuario';
-            document.getElementById('m-details').innerText = u.details || 'Sin detalles disponibles.';
+            document.getElementById('m-role').innerText = u.role;
+            document.getElementById('m-details').innerText = u.details || u.bio || 'Sin descripción';
             document.getElementById('m-call').href = `tel:${u.phone}`;
-            
-            // Distancia
-            const d = getDist(app.user.lat, app.user.lng, u.lat, u.lng);
-            document.getElementById('m-dist').innerText = d < 1000 ? Math.round(d)+'m' : (d/1000).toFixed(1)+'km';
-
             document.getElementById('user-modal').classList.add('active');
+            
+            loadMessages();
+            clearInterval(app.chatInterval);
+            app.chatInterval = setInterval(loadMessages, 3000);
         }
 
-        function closeModal() { document.getElementById('user-modal').classList.remove('active'); }
+        async function loadMessages() {
+            if(!app.activeChatPartner) return;
+            const res = await fetch(`/api/get-messages?u1=${app.user.id}&u2=${app.activeChatPartner.id}`);
+            const msgs = await res.json();
+            const win = document.getElementById('chat-window');
+            win.innerHTML = msgs.map(m => `
+                <div class="msg ${m.from_id === app.user.id ? 'me' : 'them'}">${m.text}</div>
+            `).join('');
+            win.scrollTop = win.scrollHeight;
+        }
 
-        function getDist(lat1, lon1, lat2, lon2) {
-            const R = 6371e3;
-            const p1 = lat1 * Math.PI/180; const p2 = lat2 * Math.PI/180;
-            const dp = (lat2-lat1) * Math.PI/180; const dl = (lon2-lon1) * Math.PI/180;
-            const a = Math.sin(dp/2)**2 + Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
-            return 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)) * R;
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            if(!input.value) return;
+            const msg = { from_id: app.user.id, to_id: app.activeChatPartner.id, text: input.value };
+            await fetch('/api/send-message', { method: 'POST', body: JSON.stringify(msg) });
+            input.value = '';
+            loadMessages();
+        }
+
+        function openEditProfile() {
+            document.getElementById('edit-name').value = app.user.name;
+            document.getElementById('edit-role').value = app.user.role;
+            document.getElementById('edit-bio').value = app.user.bio || '';
+            document.getElementById('edit-modal').classList.add('active');
+        }
+
+        async function saveProfile() {
+            app.user.name = document.getElementById('edit-name').value;
+            app.user.role = document.getElementById('edit-role').value;
+            app.user.bio = document.getElementById('edit-bio').value;
+            await fetch('/api/user', { method: 'POST', body: JSON.stringify(app.user) });
+            closeModals();
+        }
+
+        function closeModals() {
+            document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+            app.activeChatPartner = null;
+            clearInterval(app.chatInterval);
         }
     </script>
 </body>
