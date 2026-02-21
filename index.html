@@ -4,16 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>DORYSAPP - Red Social Urbana</title>
+    <link rel="manifest" href="/manifest.json">
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
         :root {
-            --bg-dark: #121212;
-            --surface: #1e1e1e;
-            --primary: #2ecc71; --service: #f1c40f; --business: #9b59b6; --danger: #e74c3c;
-            --text: #ffffff; --text-sec: #aaaaaa;
+            --bg-dark: #121212; --surface: #1e1e1e; --primary: #2ecc71; --service: #f1c40f; --business: #9b59b6; --danger: #e74c3c; --text: #ffffff; --text-sec: #aaaaaa;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { background: var(--bg-dark); color: var(--text); height: 100vh; overflow: hidden; }
@@ -28,14 +26,15 @@
         .role-card.active-business { border-color: var(--business); background: rgba(155, 89, 182, 0.1); color: var(--business); }
         .input-group { margin-bottom: 15px; text-align: left; }
         .input-group label { display: block; margin-bottom: 5px; color: var(--text-sec); font-size: 0.9rem; }
-        .input-group input, .input-group select { width: 100%; padding: 12px; background: #333; border: 1px solid #444; color: white; border-radius: 8px; outline: none; }
+        .input-group input, .input-group select, .input-group textarea { width: 100%; padding: 12px; background: #333; border: 1px solid #444; color: white; border-radius: 8px; outline: none; resize: none; }
         .btn-main { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
         .btn-enter { background: var(--primary); color: black; }
         .hidden { display: none !important; }
 
         /* HEADER */
         #user-info-bar { position: fixed; top: 10px; left: 10px; right: 10px; background: rgba(30,30,30,0.9); backdrop-filter: blur(5px); padding: 10px 15px; border-radius: 30px; z-index: 2000; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
-        #header-icon-container { display: flex; align-items: center; gap: 10px; }
+        #header-icon-container { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .header-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #333; border: 2px solid var(--primary); }
 
         /* MAPA */
         #map { width: 100%; height: 100vh; z-index: 1; }
@@ -46,8 +45,17 @@
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2500; display: none; justify-content: center; align-items: flex-end; }
         .modal-overlay.active { display: flex; animation: slideUp 0.3s ease; }
         .modal-card { background: var(--surface); width: 100%; max-width: 500px; border-radius: 20px 20px 0 0; padding: 20px; max-height: 85vh; overflow-y: auto; position: relative; display: flex; flex-direction: column; }
-        .modal-header { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px;}
+        .modal-header { display: flex; justify-content: space-between; margin-bottom: 15px; }
         .close-modal { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+
+        /* FICHA DE PERFIL (NUEVO DISEÑO) */
+        .profile-header { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #333; }
+        .profile-big-avatar { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); background: #333; display: flex; justify-content: center; align-items: center; font-size: 2rem; color: #666; }
+        .profile-info h2 { font-size: 1.4rem; margin-bottom: 5px; }
+        .status-badge { display: inline-block; padding: 4px 8px; border-radius: 10px; font-size: 0.75rem; margin-top: 5px; background: #444; }
+        .status-online { background: rgba(46, 204, 113, 0.2); color: var(--primary); }
+        .status-offline { background: rgba(170, 170, 170, 0.2); color: #aaa; }
+        .profile-bio { color: var(--text-sec); font-style: italic; margin-bottom: 15px; line-height: 1.4; }
 
         /* CHAT */
         #chat-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; min-height: 200px; }
@@ -57,18 +65,10 @@
         .chat-input-area { display: flex; gap: 10px; margin-top: auto; }
         .chat-input-area input { flex: 1; padding: 10px; border-radius: 20px; border: none; background: #333; color: white; }
 
-        /* NOTIFICACIÓN INCOMING */
-        #notification-overlay {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            background: var(--surface); padding: 15px; border-radius: 12px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.5); z-index: 4000;
-            display: none; flex-direction: column; align-items: center; width: 90%; max-width: 350px;
-            border: 1px solid var(--primary); animation: slideDown 0.3s ease;
-        }
+        /* NOTIFICACION */
+        #notification-overlay { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--surface); padding: 15px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.5); z-index: 4000; display: none; flex-direction: column; align-items: center; width: 90%; max-width: 350px; border: 1px solid var(--primary); animation: slideDown 0.3s ease; }
         #notification-overlay.active { display: flex; }
-        .notif-title { font-weight: bold; margin-bottom: 5px; color: var(--primary); }
-        .notif-body { font-size: 0.9rem; margin-bottom: 15px; text-align: center; }
-        .notif-actions { display: flex; gap: 10px; width: 100%; }
+        .notif-actions { display: flex; gap: 10px; width: 100%; margin-top: 15px; }
         .btn-accept { flex: 1; padding: 8px; background: var(--primary); border: none; border-radius: 5px; cursor: pointer; color: black; font-weight: bold; }
         .btn-reject { flex: 1; padding: 8px; background: #333; border: none; border-radius: 5px; cursor: pointer; color: white; }
 
@@ -117,10 +117,10 @@
         </div>
     </div>
 
-    <!-- NOTIFICACIÓN INCOMING (ACEPTAR/RECHAZAR) -->
+    <!-- NOTIFICACION -->
     <div id="notification-overlay">
-        <div class="notif-title">💬 Nuevo Mensaje</div>
-        <div class="notif-body" id="notif-text">Te ha escrito un mensaje...</div>
+        <div style="font-weight:bold; color:var(--primary); margin-bottom:5px;">💬 Nuevo Mensaje</div>
+        <div id="notif-text" style="font-size:0.9rem; text-align:center; margin-bottom:15px;">Te ha escrito un mensaje...</div>
         <div class="notif-actions">
             <button class="btn-reject" onclick="dismissNotification()">Ignorar</button>
             <button class="btn-accept" onclick="acceptNotification()">Ver Chat</button>
@@ -129,8 +129,8 @@
 
     <!-- HEADER -->
     <div id="user-info-bar" class="hidden">
-        <div id="header-icon-container">
-            <i id="header-icon" class="fa-solid fa-user" style="font-size: 1.2rem; color: var(--primary);"></i>
+        <div id="header-icon-container" onclick="openMyProfile()">
+            <img id="header-avatar" class="header-avatar" src="" alt="Yo">
             <div>
                 <span id="display-name" style="font-weight:bold;">Usuario</span>
                 <br><span id="display-role" style="font-size:0.75rem; color:#aaa;">Rol</span>
@@ -142,20 +142,46 @@
     <div id="map"></div>
     <button id="sos-btn" onclick="toggleSOS()" class="hidden"><i class="fa-solid fa-bell"></i></button>
 
-    <!-- MODAL DETALLES -->
+    <!-- MODAL PERFIL PROPIO (EDICIÓN) -->
+    <div class="modal-overlay" id="my-profile-modal">
+        <div class="modal-card">
+            <div class="modal-header"><h3>Mi Perfil</h3><button class="close-modal" onclick="closeModal('my-profile-modal')">&times;</button></div>
+            <div style="text-align:center; margin-bottom:20px;">
+                <img id="edit-avatar-preview" src="" style="width:100px; height:100px; border-radius:50%; object-fit:cover; background:#333; margin-bottom:10px;">
+                <br><label style="color:var(--primary); cursor:pointer; font-size:0.9rem;">Cambiar Foto (URL)</label>
+                <input type="text" id="edit-avatar-input" placeholder="https://..." style="margin-top:5px; padding:8px; width:100%;">
+            </div>
+            <div class="input-group"><label>Biografía</label><textarea id="edit-bio" rows="3" placeholder="Cuéntanos sobre ti..."></textarea></div>
+            <button class="btn-main btn-enter" onclick="saveMyProfile()">Guardar Cambios</button>
+        </div>
+    </div>
+
+    <!-- MODAL DETALLES (PERFIL AJENO) -->
     <div class="modal-overlay" id="detail-modal">
         <div class="modal-card">
             <div class="modal-header">
-                <div style="display:flex; align-items:center;">
-                    <div id="modal-pin-icon" class="custom-pin pin-user pulse-dot" style="width:40px; height:40px; margin-right:10px; font-size:1.2rem;"><i class="fa-solid fa-user"></i></div>
-                    <div><h2 id="modal-name">Nombre</h2><p id="modal-desc" style="color:#aaa; font-size:0.9rem;"></p></div>
-                </div>
-                <button onclick="closeModal('detail-modal')" style="background:none; border:none; color:white; font-size:1.5rem;">&times;</button>
+                <button class="close-modal" onclick="closeModal('detail-modal')" style="background:none; border:none; color:white; font-size:1.5rem;">&times;</button>
             </div>
+            
+            <!-- FICHA VISUAL MEJORADA -->
+            <div class="profile-header">
+                <div id="modal-avatar" class="profile-big-avatar">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <div class="profile-info">
+                    <h2 id="modal-name">Nombre</h2>
+                    <span id="modal-status-badge" class="status-badge status-offline">Desconectado</span>
+                    <p id="modal-role-text" style="color:var(--text-sec); font-size:0.9rem;">Rol</p>
+                </div>
+            </div>
+            
+            <p id="modal-bio" class="profile-bio">Sin biografía...</p>
+
             <div style="margin-bottom:20px;">
                 <div style="background:#2a2a2a; padding:10px; border-radius:10px; text-align:center; display:inline-block; width:48%; margin-right:2%"><b id="modal-dist">0 m</b><br><small>Distancia</small></div>
                 <div style="background:#2a2a2a; padding:10px; border-radius:10px; text-align:center; display:inline-block; width:48%"><b id="modal-time">0 min</b><br><small>Tiempo</small></div>
             </div>
+
             <h4>Reseñas</h4>
             <div id="reviews-list" style="margin-top:10px; max-height:150px; overflow-y:auto;"></div>
             <div style="margin-top:15px; display:flex; gap:10px;">
@@ -177,9 +203,7 @@
                 </div>
                 <button onclick="closeModal('chat-modal')" style="background:none; border:none; color:white; font-size:1.5rem;">&times;</button>
             </div>
-            <div id="chat-messages">
-                <div style="text-align:center; color:#666; font-size:0.8rem; margin-top:10px;">Inicio del chat</div>
-            </div>
+            <div id="chat-messages"></div>
             <div class="chat-input-area">
                 <input type="text" id="chat-input" placeholder="Escribe un mensaje...">
                 <button onclick="sendMessage()" style="background:var(--primary); border:none; border-radius:50%; width:40px; height:40px; cursor:pointer;"><i class="fa-solid fa-paper-plane"></i></button>
@@ -187,17 +211,12 @@
         </div>
     </div>
 
-    <!-- SONIDO DE NOTIFICACIÓN (Opcional) -->
     <audio id="notif-sound" src="notification.mp3" preload="auto"></audio>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const API_URL = ""; 
-        const appState = { 
-            user: null, map: null, userMarker: null, currentSelection: null, chatTarget: null,
-            lastMessageId: 0, // Para saber si el mensaje es nuevo
-            notificationUser: null // Para guardar de quién es el mensaje entrante
-        };
+        const appState = { user: null, map: null, userMarker: null, currentSelection: null, chatTarget: null, lastMessageId: 0, notificationUser: null };
         
         const ROLE_ICONS = { 'user': 'fa-solid fa-user', 'service': 'fa-solid fa-taxi', 'business': 'fa-solid fa-store' };
         const ROLE_COLORS = { 'user': 'var(--primary)', 'service': 'var(--service)', 'business': 'var(--business)' };
@@ -237,18 +256,27 @@
         }
         function showLogin() { document.getElementById('register-view').classList.add('hidden'); document.getElementById('login-view').classList.remove('hidden'); }
 
-        // --- APP ---
+        // --- APP & PERFIL ---
         async function enterApp(user) {
             appState.user = user;
-            const headerIcon = document.getElementById('header-icon');
+            // Actualizar Header
+            const headerAvatar = document.getElementById('header-avatar');
+            if(user.avatar_url) headerAvatar.src = user.avatar_url;
+            else headerAvatar.style.display = 'none'; // Ocultar si no hay foto
+            
+            const headerIcon = document.getElementById('header-icon-container').querySelector('i');
             headerIcon.className = ROLE_ICONS[user.role] || 'fa-solid fa-user';
             headerIcon.style.color = ROLE_COLORS[user.role] || 'var(--primary)';
-            
+
             document.getElementById('display-name').innerText = user.name;
             document.getElementById('display-role').innerText = user.role === 'business' ? 'Negocio' : (user.role === 'service' ? 'Servicio' : 'Usuario');
             document.getElementById('auth-screen').classList.add('hidden');
             document.getElementById('user-info-bar').classList.remove('hidden');
             document.getElementById('sos-btn').classList.remove('hidden');
+
+            // Marcar como ONLINE
+            user.status = 'online';
+            await fetch('/api/user', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(user) });
 
             appState.map = L.map('map').setView([0,0],2);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(appState.map);
@@ -262,11 +290,44 @@
                     if(appState.userMarker) appState.map.removeLayer(appState.userMarker);
                     appState.userMarker = L.marker([latitude, longitude], {icon: createIcon('user')}).addTo(appState.map).bindPopup("Tú");
                     loadUsers();
-                    startNotificationChecker(); // Iniciar chequeo de notificaciones
+                    startNotificationChecker();
                 });
             }
         }
 
+        function openMyProfile() {
+            if(!appState.user) return;
+            document.getElementById('edit-bio').value = appState.user.bio || "";
+            document.getElementById('edit-avatar-input').value = appState.user.avatar_url || "";
+            document.getElementById('edit-avatar-preview').src = appState.user.avatar_url || "";
+            document.getElementById('my-profile-modal').classList.add('active');
+        }
+
+        async function saveMyProfile() {
+            const newBio = document.getElementById('edit-bio').value;
+            const newAvatar = document.getElementById('edit-avatar-input').value;
+            
+            // Actualizar localmente
+            appState.user.bio = newBio;
+            appState.user.avatar_url = newAvatar;
+            if(newAvatar) {
+                document.getElementById('header-avatar').src = newAvatar;
+                document.getElementById('header-avatar').style.display = 'block';
+            }
+
+            // Enviar al servidor
+            try {
+                await fetch('/api/update-profile', {
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ id: appState.user.id, bio: newBio, avatar_url: newAvatar })
+                });
+                alert("Perfil actualizado");
+                closeModal('my-profile-modal');
+            } catch(e) { alert("Error guardando perfil"); }
+        }
+
+        // --- MAPA Y PINS ---
         async function loadUsers() {
             try {
                 const users = await (await fetch('/api/users')).json();
@@ -286,16 +347,25 @@
             return L.divIcon({className:'custom-pin-container', html:`<div class="${cls}" style="background:${color}; width:30px; height:30px; display:flex; justify-content:center; align-items:center;">${html}</div>`, iconSize:[30,30], iconAnchor:[15,15]});
         }
 
-        // --- DETALLES ---
+        // --- MODAL DETALLES ---
         async function openModal(u) {
             appState.currentSelection = u;
             document.getElementById('modal-name').innerText = u.name;
-            document.getElementById('modal-desc').innerText = u.details;
-            const pinIcon = document.getElementById('modal-pin-icon');
-            pinIcon.className = `custom-pin pin-${u.role} pulse-dot`;
-            pinIcon.style.background = ROLE_COLORS[u.role];
-            pinIcon.innerHTML = `<i class="${ROLE_ICONS[u.role]}"></i>`;
-            pinIcon.style.cssText = "width:40px; height:40px; font-size:1.2rem; display:flex; justify-content:center; align-items:center;";
+            document.getElementById('modal-bio').innerText = u.bio || "Este usuario no tiene biografía aún.";
+            document.getElementById('modal-role-text').innerText = u.role === 'business' ? 'Negocio' : (u.role === 'service' ? 'Servicio de: ' + u.details : 'Usuario Normal');
+            
+            // Foto
+            const avatarContainer = document.getElementById('modal-avatar');
+            if(u.avatar_url) {
+                avatarContainer.innerHTML = `<img src="${u.avatar_url}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+            } else {
+                avatarContainer.innerHTML = `<i class="fa-solid fa-user"></i>`;
+            }
+
+            // Estado
+            const badge = document.getElementById('modal-status-badge');
+            badge.className = 'status-badge ' + (u.status === 'online' ? 'status-online' : 'status-offline');
+            badge.innerText = u.status === 'online' ? '🟢 En línea' : '⚫ Desconectado';
 
             const dist = getDist(appState.user.lat, appState.user.lng, u.lat, u.lng);
             document.getElementById('modal-dist').innerText = dist < 1000 ? dist+' m' : (dist/1000).toFixed(1)+' km';
@@ -327,7 +397,7 @@
             document.getElementById('chat-messages').innerHTML = '<div style="text-align:center; color:#666; font-size:0.8rem; margin-top:10px;">Cargando mensajes...</div>';
             document.getElementById('chat-modal').classList.add('active');
             loadMessages();
-            dismissNotification(); // Ocultar notificación si se abre desde ahí
+            dismissNotification();
         }
 
         async function loadMessages() {
@@ -335,16 +405,9 @@
             try {
                 const msgs = await (await fetch(`/api/messages/${appState.chatTarget.id}?me=${appState.user.id}`)).json();
                 const container = document.getElementById('chat-messages');
-                
-                // Solo redibujar si hay cambios (simple check)
-                if(msgs.length > 0) {
-                    // Actualizar el ultimo ID visto si estamos en el chat
-                    const lastMsg = msgs[msgs.length-1];
-                    if(lastMsg.id > appState.lastMessageId) {
-                        appState.lastMessageId = lastMsg.id;
-                    }
+                if(msgs.length > 0 && msgs[msgs.length-1].id > appState.lastMessageId) {
+                    appState.lastMessageId = msgs[msgs.length-1].id;
                 }
-
                 container.innerHTML = '';
                 msgs.forEach(m => {
                     const isMe = m.sender_id === appState.user.id;
@@ -368,65 +431,37 @@
             } catch(e) { alert("Error enviando"); }
         }
 
-        document.getElementById('btn-open-chat').addEventListener('click', () => {
-            closeModal('detail-modal');
-            openChat(appState.currentSelection);
-        });
-
+        document.getElementById('btn-open-chat').addEventListener('click', () => { closeModal('detail-modal'); openChat(appState.currentSelection); });
         document.getElementById('chat-input').addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMessage(); });
 
-        // --- SISTEMA DE NOTIFICACIONES ---
         async function startNotificationChecker() {
-            // Revisar mensajes nuevos cada 5 segundos
             setInterval(async () => {
-                // Solo si el chat NO está abierto (para no interrumpir)
                 if(!document.getElementById('chat-modal').classList.contains('active')) {
                     try {
-                        // Buscamos el mensaje más reciente que me hayan enviado
-                        // Nota: Esta SQL es un poco pesada, pero funciona para pocos usuarios
-                        // Una optimización sería crear una tabla 'notifications' aparte, pero usaremos messages por ahora.
                         const res = await fetch(`/api/check-notifications?user_id=${appState.user.id}`);
                         const data = await res.json();
-                        
-                        if(data && data.length > 0) {
-                            const newMsg = data[0]; // El más reciente
-                            
-                            // Si el ID es mayor al último que vi
-                            if(newMsg.id > appState.lastMessageId) {
-                                appState.lastMessageId = newMsg.id;
-                                appState.notificationUser = { id: newMsg.sender_id, name: newMsg.sender_name };
-                                triggerNotification(newMsg.message, newMsg.sender_name);
-                            }
+                        if(data && data.length > 0 && data[0].id > appState.lastMessageId) {
+                            appState.lastMessageId = data[0].id;
+                            appState.notificationUser = { id: data[0].sender_id, name: data[0].sender_name };
+                            triggerNotification(data[0].message, data[0].sender_name);
                         }
-                    } catch(e) { console.log("Esperando implementación de /api/check-notifications"); }
+                    } catch(e) {}
                 }
             }, 5000);
         }
 
         function triggerNotification(msg, senderName) {
             const notif = document.getElementById('notification-overlay');
-            const text = document.getElementById('notif-text');
-            text.innerHTML = `<b>${senderName}</b><br>${msg}`;
+            document.getElementById('notif-text').innerHTML = `<b>${senderName}</b><br>${msg}`;
             notif.classList.add('active');
-            
-            // Reproducir sonido
             const audio = document.getElementById('notif-sound');
-            if(audio) {
-                audio.play().catch(e => console.log("Audio play blocked (user interaction needed)"));
-            }
+            if(audio) audio.play().catch(e => console.log("Audio blocked"));
         }
 
-        function dismissNotification() {
-            document.getElementById('notification-overlay').classList.remove('active');
-        }
-
+        function dismissNotification() { document.getElementById('notification-overlay').classList.remove('active'); }
         function acceptNotification() {
             dismissNotification();
             if(appState.notificationUser) {
-                // Abrir chat simulado con el usuario que nos notificó
-                // Nota: Necesitamos cargar los datos completos del usuario, por ahora usamos el ID
-                // En una app real buscaríamos el usuario en la DB antes de abrir chat.
-                // Aquí simulamos que 'currentSelection' se llena con los datos básicos.
                 appState.currentSelection = appState.notificationUser; 
                 openChat(appState.notificationUser);
             }
