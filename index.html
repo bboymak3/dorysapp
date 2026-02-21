@@ -3,146 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DORYSAPP - Red Social Urbana</title>
-    
+    <title>DORYSAPP</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
     <style>
-        :root {
-            --bg-dark: #121212;
-            --surface: #1e1e1e;
-            --primary: #2ecc71; --service: #f1c40f; --business: #9b59b6; --danger: #e74c3c;
-            --text: #ffffff; --text-sec: #aaaaaa;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-        body { background: var(--bg-dark); color: var(--text); height: 100vh; overflow: hidden; }
-
+        :root { --bg: #121212; --surface: #1e1e1e; --primary: #2ecc71; --text: #fff; }
+        * { margin:0; padding:0; box-sizing:border-box; font-family: sans-serif; }
+        body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+        #map { width: 100%; height: 100vh; background: #000; }
+        
         /* AUTH */
-        #auth-screen { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 3000; display: flex; justify-content: center; align-items: center; padding: 20px; }
-        .auth-box { background: var(--surface); width: 100%; max-width: 400px; padding: 25px; border-radius: 15px; text-align: center; }
-        .role-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 20px 0; }
-        .role-card { background: #2a2a2a; padding: 15px 5px; border-radius: 10px; cursor: pointer; border: 2px solid transparent; display: flex; flex-direction: column; align-items: center; gap: 5px; }
-        .role-card.active-user { border-color: var(--primary); color: var(--primary); }
-        .role-card.active-service { border-color: var(--service); color: var(--service); }
-        .role-card.active-business { border-color: var(--business); color: var(--business); }
-        .input-group { margin-bottom: 15px; text-align: left; }
-        .input-group label { display: block; font-size: 0.8rem; color: var(--text-sec); }
-        .input-group input, .input-group select { width: 100%; padding: 12px; background: #333; border: 1px solid #444; color: white; border-radius: 8px; }
-        .btn-main { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        #auth-screen { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 3000; display: flex; justify-content: center; align-items: center; }
+        .auth-box { background: var(--surface); padding: 25px; border-radius: 15px; width: 90%; max-width: 400px; text-align: center; }
+        .input-group { margin: 15px 0; text-align: left; }
+        .input-group input { width: 100%; padding: 12px; background: #333; border: 1px solid #444; color: white; border-radius: 8px; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; background: var(--primary); }
 
-        /* PANEL LATERAL USUARIOS */
-        #online-list { position: fixed; top: 80px; right: 10px; z-index: 1500; width: 180px; background: rgba(30,30,30,0.85); backdrop-filter: blur(10px); border-radius: 15px; padding: 10px; max-height: 40vh; overflow-y: auto; border: 1px solid #333; transition: 0.3s; }
-        .user-row { padding: 8px 0; border-bottom: 1px solid #444; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); }
-
-        /* HEADER */
-        #user-info-bar { position: fixed; top: 10px; left: 10px; right: 10px; background: rgba(30,30,30,0.9); padding: 10px 15px; border-radius: 30px; z-index: 2000; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
-
-        /* MAPA */
-        #map { width: 100%; height: 100vh; z-index: 1; background: #000; }
-
-        /* MODALES */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2500; display: none; justify-content: center; align-items: flex-end; }
-        .modal-overlay.active { display: flex; }
-        .modal-card { background: var(--surface); width: 100%; max-width: 500px; border-radius: 20px 20px 0 0; padding: 25px; animation: slideUp 0.3s ease; }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-
-        .tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; background: #333; color: var(--text-sec); margin-right: 5px; font-weight: bold; }
+        /* LISTA LATERAL */
+        #online-list { position: fixed; top: 80px; right: 10px; z-index: 1000; width: 150px; background: rgba(30,30,30,0.8); border-radius: 10px; padding: 10px; max-height: 200px; overflow-y: auto; font-size: 0.8rem; }
+        
         .hidden { display: none !important; }
-        .custom-pin { border-radius: 50%; border: 2px solid white; display: flex; justify-content: center; align-items: center; color: white; }
+        .custom-pin { border-radius: 50%; border: 2px solid white; display: flex; justify-content: center; align-items: center; color: white; background: var(--primary); }
     </style>
 </head>
 <body>
 
     <div id="auth-screen">
         <div class="auth-box">
-            <h2 style="color:var(--primary); margin-bottom: 20px;">DORYSAPP</h2>
+            <h2>DORYSAPP</h2>
             <div id="login-view">
-                <div class="input-group"><label>Teléfono</label><input type="tel" id="login-phone" placeholder="0412..."></div>
-                <button class="btn-main" style="background:var(--primary);" onclick="checkUser()">Entrar</button>
+                <div class="input-group"><input type="tel" id="login-phone" placeholder="Teléfono..."></div>
+                <button class="btn" onclick="checkUser()">Entrar</button>
             </div>
             <div id="register-view" class="hidden">
-                <div class="role-grid">
-                    <div class="role-card active-user" id="role-user" onclick="selectRole('user')"><i class="fa-solid fa-user"></i><span>Yo</span></div>
-                    <div class="role-card" id="role-service" onclick="selectRole('service')"><i class="fa-solid fa-taxi"></i><span>Servicio</span></div>
-                    <div class="role-card" id="role-business" onclick="selectRole('business')"><i class="fa-solid fa-store"></i><span>Negocio</span></div>
-                </div>
-                <div class="input-group"><label>Nombre y Apellido</label><input type="text" id="reg-name"></div>
-                <div class="input-group" id="service-options"><label>¿Qué ofreces?</label><input type="text" id="reg-details" placeholder="Ej: Taxi, Delivery de comida..."></div>
-                <button class="btn-main" style="background:var(--primary);" onclick="registerUser()">Registrarme</button>
+                <div class="input-group"><input type="text" id="reg-name" placeholder="Tu Nombre..."></div>
+                <button class="btn" onclick="registerUser()">Completar Registro</button>
             </div>
         </div>
-    </div>
-
-    <div id="user-info-bar" class="hidden">
-        <div style="display:flex; align-items:center; gap:10px;">
-            <i id="header-icon" class="fa-solid fa-user" style="color:var(--primary);"></i>
-            <span id="display-name" style="font-weight:bold;">Cargando...</span>
-        </div>
-        <button onclick="location.reload()" style="background:none; border:none; color:#aaa;"><i class="fa-solid fa-power-off"></i></button>
     </div>
 
     <div id="online-list" class="hidden">
-        <p style="font-size:0.7rem; color:var(--primary); font-weight:bold; margin-bottom:10px;">EN LÍNEA</p>
+        <p style="color:var(--primary); font-weight:bold; margin-bottom:5px;">ACTIVOS</p>
         <div id="user-list-content"></div>
     </div>
 
     <div id="map"></div>
 
-    <div class="modal-overlay" id="detail-modal">
-        <div class="modal-card">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px;">
-                <div style="display:flex; gap:15px;">
-                    <div id="modal-icon" class="custom-pin" style="width:50px; height:50px; font-size:1.2rem; background:var(--primary);"></div>
-                    <div>
-                        <h2 id="modal-name">Nombre</h2>
-                        <div id="modal-tags" style="margin-top:5px;"></div>
-                    </div>
-                </div>
-                <button onclick="closeModal()" style="background:none; border:none; color:white; font-size:1.5rem;">&times;</button>
-            </div>
-
-            <div style="background:#2a2a2a; padding:15px; border-radius:12px; margin-bottom:20px;">
-                <p style="font-size:0.8rem; color:var(--text-sec); margin-bottom:5px;">DESCRIPCIÓN</p>
-                <p id="modal-desc" style="font-size:0.95rem;">...</p>
-            </div>
-
-            <div style="display:flex; gap:10px; margin-bottom:20px;">
-                <div style="flex:1; background:#252525; padding:10px; border-radius:10px; text-align:center;">
-                    <small style="color:#666;">Distancia</small><br><b id="modal-dist">0m</b>
-                </div>
-                <div style="flex:1; background:#252525; padding:10px; border-radius:10px; text-align:center;">
-                    <small style="color:#666;">Tiempo est.</small><br><b id="modal-time">0 min</b>
-                </div>
-            </div>
-
-            <button class="btn-main" style="background:var(--primary); color:black;" id="btn-chat">CHATEAR AHORA</button>
-            <a href="#" id="btn-call" class="btn-main" style="background:#333; color:white; display:block; text-align:center; text-decoration:none; margin-top:10px;">LLAMAR POR TELÉFONO</a>
-        </div>
-    </div>
-
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const appState = { 
-            user: null, 
-            map: null, 
-            markers: {}, // Para rastrear y borrar iconos individualmente
-            selectedRole: 'user'
+            user: null, map: null, markers: {}, 
+            myMarker: null 
         };
-
-        const ROLE_ICONS = { user: 'fa-user', service: 'fa-taxi', business: 'fa-store' };
-        const ROLE_COLORS = { user: '#2ecc71', service: '#f1c40f', business: '#9b59b6' };
-
-        function selectRole(r) {
-            appState.selectedRole = r;
-            document.querySelectorAll('.role-card').forEach(c => c.className = 'role-card');
-            document.getElementById(`role-${r}`).classList.add(`active-${r}`);
-        }
 
         async function checkUser() {
             const phone = document.getElementById('login-phone').value;
-            if(!phone) return;
             const res = await fetch(`/api/check-user?phone=${phone}`);
             const data = await res.json();
             if(data.found) enterApp(data.user);
@@ -151,12 +66,10 @@
 
         async function registerUser() {
             const user = {
-                id: 'ID' + Math.floor(Math.random()*99999),
+                id: 'U' + Date.now(),
                 name: document.getElementById('reg-name').value,
                 phone: document.getElementById('login-phone').value,
-                role: appState.selectedRole,
-                details: document.getElementById('reg-details').value,
-                lat: 0, lng: 0
+                role: 'user', lat: 0, lng: 0
             };
             await fetch('/api/user', { method: 'POST', body: JSON.stringify(user) });
             enterApp(user);
@@ -165,98 +78,66 @@
         function enterApp(user) {
             appState.user = user;
             document.getElementById('auth-screen').classList.add('hidden');
-            document.getElementById('user-info-bar').classList.remove('hidden');
             document.getElementById('online-list').classList.remove('hidden');
-            document.getElementById('display-name').innerText = user.name;
 
             appState.map = L.map('map', { zoomControl: false }).setView([0,0], 2);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(appState.map);
 
-            // Rastreo de ubicación constante
+            // Rastreo de ubicación
             navigator.geolocation.watchPosition(async (pos) => {
                 const { latitude, longitude } = pos.coords;
                 appState.user.lat = latitude;
                 appState.user.lng = longitude;
-                appState.map.panTo([latitude, longitude]);
-                
-                // Actualizar ubicación en DB (esto actualiza last_seen en backend)
-                fetch('/api/user', { method: 'POST', body: JSON.stringify(appState.user) });
-            }, null, { enableHighAccuracy: true });
 
-            // Ciclo de sincronización cada 5 segundos
+                // Actualizar mi propio marcador
+                if(!appState.myMarker) {
+                    appState.myMarker = L.marker([latitude, longitude]).addTo(appState.map).bindPopup("Tú");
+                    appState.map.setView([latitude, longitude], 15);
+                } else {
+                    appState.myMarker.setLatLng([latitude, longitude]);
+                }
+
+                // Enviar a DB
+                fetch('/api/user', { method: 'POST', body: JSON.stringify(appState.user) });
+            }, (err) => console.error("Error GPS:", err), { enableHighAccuracy: true });
+
             setInterval(syncWorld, 5000);
             syncWorld();
         }
 
         async function syncWorld() {
-            const res = await fetch('/api/users');
-            const users = await res.json();
-            
-            const listContent = document.getElementById('user-list-content');
-            listContent.innerHTML = '';
-            
-            // 1. Obtener IDs activos para borrar los que ya no están (auto-limpieza)
-            const activeIds = users.map(u => u.id);
-            Object.keys(appState.markers).forEach(id => {
-                if(!activeIds.includes(id)) {
-                    appState.map.removeLayer(appState.markers[id]);
-                    delete appState.markers[id];
-                }
-            });
+            try {
+                const res = await fetch('/api/users');
+                const users = await res.json();
+                
+                const listContent = document.getElementById('user-list-content');
+                listContent.innerHTML = '';
+                
+                const activeIds = users.map(u => u.id);
 
-            // 2. Dibujar/Actualizar usuarios
-            users.forEach(u => {
-                // Lista Lateral
-                if(u.id !== appState.user.id) {
-                    const row = document.createElement('div');
-                    row.className = 'user-row';
-                    row.innerHTML = `<div class="status-dot" style="background:${ROLE_COLORS[u.role]}"></div>
-                                     <div style="font-size:0.8rem;"><b>${u.name}</b><br><small style="color:#666">${u.role}</small></div>`;
-                    row.onclick = () => { appState.map.flyTo([u.lat, u.lng], 16); openDetails(u); };
-                    listContent.appendChild(row);
-                }
+                // Borrar inactivos
+                Object.keys(appState.markers).forEach(id => {
+                    if(!activeIds.includes(id)) {
+                        appState.map.removeLayer(appState.markers[id]);
+                        delete appState.markers[id];
+                    }
+                });
 
-                // Mapa
-                if(!appState.markers[u.id]) {
-                    const icon = L.divIcon({
-                        className: 'custom-div',
-                        html: `<div class="custom-pin" style="background:${ROLE_COLORS[u.role]}; width:30px; height:30px;">
-                                <i class="fa-solid ${ROLE_ICONS[u.role]}" style="font-size:12px;"></i>
-                               </div>`,
-                        iconSize: [30, 30]
-                    });
-                    appState.markers[u.id] = L.marker([u.lat, u.lng], { icon }).addTo(appState.map);
-                    appState.markers[u.id].on('click', () => openDetails(u));
-                } else {
-                    appState.markers[u.id].setLatLng([u.lat, u.lng]);
-                }
-            });
-        }
+                // Dibujar otros
+                users.forEach(u => {
+                    if(u.id === appState.user.id) return;
 
-        function openDetails(u) {
-            document.getElementById('modal-name').innerText = u.name;
-            document.getElementById('modal-desc').innerText = u.details || 'Sin descripción';
-            document.getElementById('modal-icon').style.background = ROLE_COLORS[u.role];
-            document.getElementById('modal-icon').innerHTML = `<i class="fa-solid ${ROLE_ICONS[u.role]}"></i>`;
-            document.getElementById('modal-tags').innerHTML = `<span class="tag">${u.role.toUpperCase()}</span> <span class="tag" style="color:#2ecc71;">ONLINE</span>`;
-            document.getElementById('btn-call').href = `tel:${u.phone}`;
-            
-            // Distancia simple
-            const d = getDist(appState.user.lat, appState.user.lng, u.lat, u.lng);
-            document.getElementById('modal-dist').innerText = d < 1000 ? Math.round(d)+'m' : (d/1000).toFixed(1)+'km';
-            document.getElementById('modal-time').innerText = Math.round(d/100) + ' min';
+                    // Lista
+                    listContent.innerHTML += `<div>${u.name}</div>`;
 
-            document.getElementById('detail-modal').classList.add('active');
-        }
-
-        function closeModal() { document.getElementById('detail-modal').classList.remove('active'); }
-
-        function getDist(lat1, lon1, lat2, lon2) {
-            const R = 6371e3;
-            const p1 = lat1 * Math.PI/180; const p2 = lat2 * Math.PI/180;
-            const dp = (lat2-lat1) * Math.PI/180; const dl = (lon2-lon1) * Math.PI/180;
-            const a = Math.sin(dp/2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2) ** 2;
-            return 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)) * R;
+                    // Mapa
+                    if(!appState.markers[u.id]) {
+                        appState.markers[u.id] = L.marker([u.lat, u.lng]).addTo(appState.map).bindPopup(u.name);
+                    } else {
+                        appState.markers[u.id].setLatLng([u.lat, u.lng]);
+                    }
+                });
+            } catch(e) { console.error("Error sync:", e); }
         }
     </script>
 </body>
