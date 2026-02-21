@@ -1,7 +1,6 @@
 export async function onRequest(context) {
   const { request, env } = context;
   const url = new URL(request.url);
-  
   const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -11,28 +10,22 @@ export async function onRequest(context) {
   if (request.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // LOGIN
     if (url.pathname === "/api/check-user" && request.method === "GET") {
       const phone = url.searchParams.get("phone");
       const user = await env.DB.prepare("SELECT * FROM users WHERE phone = ?").bind(phone).first();
       return new Response(JSON.stringify(user ? { found: true, user } : { found: false }), { headers: corsHeaders });
     }
 
-    // GUARDAR O ACTUALIZAR (POST)
     if (url.pathname === "/api/user" && request.method === "POST") {
       const data = await request.json();
-      // Usamos INSERT OR REPLACE para simplificar y asegurar que se guarde
       await env.DB.prepare(`
-        INSERT OR REPLACE INTO users (id, name, phone, role, lat, lng, details, last_seen) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-      `).bind(data.id, data.name, data.phone, data.role, data.lat, data.lng, data.details || '').run();
-      
+        INSERT OR REPLACE INTO users (id, name, phone, role, lat, lng, details, bio, last_seen) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      `).bind(data.id, data.name, data.phone, data.role || 'Usuario', data.lat, data.lng, data.details || '', data.bio || 'Sin biografía').run();
       return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
     }
 
-    // OBTENER TODOS (GET)
     if (url.pathname === "/api/users" && request.method === "GET") {
-      // Muestra a todos los que se han conectado en los últimos 5 minutos para asegurar que aparezcan
       const { results } = await env.DB.prepare("SELECT * FROM users WHERE last_seen > datetime('now', '-5 minutes')").all();
       return new Response(JSON.stringify(results || []), { headers: corsHeaders });
     }
