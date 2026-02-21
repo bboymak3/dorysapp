@@ -2,7 +2,6 @@ export async function onRequest(context) {
   const { request, env } = context;
   const url = new URL(request.url);
   
-  // Headers de seguridad (CORS)
   const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -14,22 +13,20 @@ export async function onRequest(context) {
   }
 
   try {
-    // --- RUTA: CHECK NOTIFICATIONS (Para alertas en tiempo real) ---
+    // --- CHECK NOTIFICATIONS ---
     if (url.pathname === "/api/check-notifications" && request.method === "GET") {
       const userId = url.searchParams.get("user_id");
-      // Buscamos el último mensaje donde YO soy el receptor
-      // Hacemos un JOIN con la tabla users para obtener también el nombre del que envía
       const { results } = await env.DB.prepare(`
         SELECT m.*, u.name as sender_name FROM messages m
         LEFT JOIN users u ON m.sender_id = u.id
-        WHERE m.receiver_id = ? 
+        WHERE m.receiver_id = ? AND m.id > COALESCE((SELECT id FROM messages WHERE receiver_id = ? ORDER BY id DESC LIMIT 1 OFFSET 1), 0)
         ORDER BY m.created_at DESC LIMIT 1
-      `).bind(userId).all();
+      `).bind(userId, userId).all();
       
       return new Response(JSON.stringify(results), { headers: corsHeaders });
     }
 
-    // --- RUTA: OBTENER MENSAJES DEL CHAT ---
+    // --- OBTENER MENSAJES ---
     if (url.pathname.startsWith("/api/messages/") && request.method === "GET") {
       const otherUserId = url.pathname.split("/").pop();
       const myId = url.searchParams.get("me");
@@ -43,40 +40,72 @@ export async function onRequest(context) {
       return new Response(JSON.stringify(results), { headers: corsHeaders });
     }
 
-    // --- RUTA: ENVIAR MENSAJE ---
+    // --- ENVIAR MENSAJE ---
     if (url.pathname === "/api/messages" && request.method === "POST") {
       const data = await request.json();
+      
+      // Al enviar mensaje, actualizamos el estado de AMBOS interlocutores a 'online'
+      await env.DB.prepare(`UPDATE users SET status = 'online', last_seen = datetime('now') WHERE id = ? OR id = ?`)
+        .bind(data.sender_id, data.receiver_id).run();
+
+      // Guardar mensaje
       await env.DB.prepare(`
         INSERT INTO messages (sender_id, receiver_id, message, created_at)
         VALUES (?, ?, ?, datetime('now'))
       `).bind(data.sender_id, data.receiver_id, data.message).run();
+      
       return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
     }
 
-    // --- RUTA: CHECK USER (Login) ---
+    // --- CHECK USER ---
     if (url.pathname === "/api/check-user" && request.method === "GET") {
       const phone = url.searchParams.get("phone");
       const user = await env.DB.prepare("SELECT * FROM users WHERE phone = ?").bind(phone).first();
       return new Response(JSON.stringify(user ? { found: true, user } : { found: false }), { headers: corsHeaders });
     }
 
-    // --- RUTA: GUARDAR USUARIO (Registro / Update) ---
+    // --- GUARDAR O ACTUALIZAR USUARIO ---
     if (url.pathname === "/api/user" && request.method === "POST") {
       const data = await request.json();
-      await env.DB.prepare(`
-        INSERT OR REPLACE INTO users (id, name, phone, role, lat, lng, details, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-      `).bind(data.id, data.name, data.phone, data.role, data.lat, data.lng, data.details).run();
+      
+      // Si es un registro nuevo, marcamos como online
+      const isUpdate = await env.DB.prepare("SELECT id FROM users WHERE id = ?").bind(data.id).first();
+      
+      let sql = `
+        INSERT INTO users (id, name, surname, phone, role, lat, lng, details, bio, avatar_url, status, last_seen)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'online', datetime('now'))
+      `;
+      
+      // Valores a insertar
+      const values = [
+        data.id, data.name, data.surname, data.phone, data.role, data.lat, data.lng, 
+        data.details, data.bio, data.avatar_url || "", 
+        (isUpdate ? 'status' : 'online'), // Mantener estado si actualizamos
+        (isUpdate ? 'last_seen' : 'datetime(\'now\')') // Mantener last_seen si actualizamos
+      ];
+      
+      await env.DB.prepare(sql).bind(...values).run();
+      
       return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
     }
 
-    // --- RUTA: LISTAR USUARIOS ---
+    // --- ACTUALIZAR PERFIL (Foto y Bio) ---
+    if (url.pathname === "/api/update-profile" && request.method === "POST") {
+      const data = await request.json();
+      await env.DB.prepare(`
+        UPDATE users SET bio = ?, avatar_url = ? WHERE id = ?
+      `).bind(data.bio, data.avatar_url, data.id).run();
+      
+      return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+    }
+
+    // --- LISTAR USUARIOS ---
     if (url.pathname === "/api/users" && request.method === "GET") {
       const { results } = await env.DB.prepare("SELECT * FROM users ORDER BY created_at DESC LIMIT 50").all();
       return new Response(JSON.stringify(results), { headers: corsHeaders });
     }
 
-    // --- RUTA: GUARDAR RESEÑA ---
+    // --- GUARDAR RESEÑA ---
     if (url.pathname === "/api/review" && request.method === "POST") {
       const data = await request.json();
       await env.DB.prepare(`
@@ -86,16 +115,13 @@ export async function onRequest(context) {
       return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
     }
 
-    // --- RUTA: OBTENER RESEÑAS ---
+    // --- OBTENER RESEÑAS ---
     if (url.pathname.startsWith("/api/reviews/") && request.method === "GET") {
       const targetId = url.pathname.split("/").pop();
       const { results } = await env.DB.prepare("SELECT * FROM reviews WHERE target_id = ? ORDER BY created_at DESC").bind(targetId).all();
       return new Response(JSON.stringify(results), { headers: corsHeaders });
     }
 
-    return new Response("Not Found", { status: 404 });
-
-  } catch (err) {
-    return new Response("Error: " + err.message, { status: 500 });
+    return new Response("Not Found", { status: 404, headers: corsHeaders });
   }
-}
+};
