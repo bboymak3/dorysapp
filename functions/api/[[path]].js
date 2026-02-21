@@ -1,57 +1,112 @@
 export async function onRequest(context) {
   const { request, env } = context;
   const url = new URL(request.url);
+  
   const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
   };
 
-  if (request.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (request.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
 
   try {
-    // LOGIN
+    // --- RUTA: LOGIN ---
     if (url.pathname === "/api/check-user" && request.method === "GET") {
       const phone = url.searchParams.get("phone");
       const user = await env.DB.prepare("SELECT * FROM users WHERE phone = ?").bind(phone).first();
       return new Response(JSON.stringify(user ? { found: true, user } : { found: false }), { headers: corsHeaders });
     }
 
-    // ACTUALIZAR POSICIÓN Y PERFIL
+    // --- RUTA: GUARDAR USUARIO / ACTUALIZAR UBICACIÓN ---
+    // Cada POST actualiza 'last_seen' a la hora actual.
     if (url.pathname === "/api/user" && request.method === "POST") {
       const data = await request.json();
+      // Usamos ON CONFLICT (Upsert) para actualizar si el usuario ya existe
       await env.DB.prepare(`
-        INSERT OR REPLACE INTO users (id, name, phone, role, lat, lng, details, last_seen) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-      `).bind(data.id, data.name, data.phone, data.role, data.lat, data.lng, data.details || '').run();
+        INSERT INTO users (id, name, phone, role, lat, lng, details, bio, avatar_url, status, last_seen, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+        ON CONFLICT(id) DO UPDATE SET 
+          lat = excluded.lat, 
+          lng = excluded.lng, 
+          details = excluded.details,
+          bio = excluded.bio,
+          avatar_url = excluded.avatar_url,
+          status = excluded.status,
+          last_seen = datetime('now')
+      `).bind(
+        data.id, 
+        data.name, 
+        data.phone, 
+        data.role, 
+        data.lat, 
+        data.lng, 
+        data.details || '',
+        data.bio || '',
+        data.avatar_url || '',
+        data.status || 'offline'
+      ).run();
+      
       return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
     }
 
-    // LISTA DE USUARIOS (FILTRO 10 MINUTOS PARA ASEGURAR QUE SE VEAN)
+    // --- RUTA: LISTA DE USUARIOS (FILTRO DE ACTIVIDAD) ---
+    // Solo devuelve usuarios vistos en el último minuto.
     if (url.pathname === "/api/users" && request.method === "GET") {
-      const { results } = await env.DB.prepare("SELECT * FROM users WHERE last_seen > datetime('now', '-10 minutes')").all();
-      return new Response(JSON.stringify(results || []), { headers: corsHeaders });
+      const { results } = await env.DB.prepare(`
+        SELECT * FROM users 
+        WHERE last_seen > datetime('now', '-60 seconds')
+        ORDER BY last_seen DESC
+      `).all();
+      return new Response(JSON.stringify(results), { headers: corsHeaders });
     }
 
-    // CHAT: ENVIAR
-    if (url.pathname === "/api/send-message" && request.method === "POST") {
-      const m = await request.json();
-      await env.DB.prepare("INSERT INTO messages (from_id, to_id, text, created_at) VALUES (?, ?, ?, datetime('now'))")
-        .bind(m.from_id, m.to_id, m.text).run();
+    // --- RUTA: ACTUALIZAR MI PERFIL ---
+    if (url.pathname === "/api/update-profile" && request.method === "POST") {
+      const data = await request.json();
+      await env.DB.prepare("UPDATE users SET bio = ?, avatar_url = ? WHERE id = ?").bind(data.bio, data.avatar_url, data.id).run();
       return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
     }
 
-    // CHAT: RECIBIR
-    if (url.pathname === "/api/get-messages" && request.method === "GET") {
-      const u1 = url.searchParams.get("u1");
-      const u2 = url.searchParams.get("u2");
-      const { results } = await env.DB.prepare("SELECT * FROM messages WHERE (from_id=? AND to_id=?) OR (from_id=? AND to_id=?) ORDER BY created_at ASC")
-        .bind(u1, u2, u2, u1).all();
-      return new Response(JSON.stringify(results || []), { headers: corsHeaders });
+    // --- RUTAS DE CHAT Y NOTIFICACIONES ---
+    if (url.pathname.startsWith("/api/messages/") && request.method === "GET") {
+      const otherUserId = url.pathname.split("/").pop();
+      const myId = url.searchParams.get("me");
+      const { results } = await env.DB.prepare(`
+        SELECT * FROM messages WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) ORDER BY created_at ASC
+      `).bind(myId, otherUserId, otherUserId, myId).all();
+      return new Response(JSON.stringify(results), { headers: corsHeaders });
+    }
+    if (url.pathname === "/api/messages" && request.method === "POST") {
+      const data = await request.json();
+      await env.DB.prepare("INSERT INTO messages (sender_id, receiver_id, message, created_at) VALUES (?, ?, ?, datetime('now'))").bind(data.sender_id, data.receiver_id, data.message).run();
+      return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+    }
+    if (url.pathname === "/api/check-notifications" && request.method === "GET") {
+      const userId = url.searchParams.get("user_id");
+      const { results } = await env.DB.prepare(`
+        SELECT m.*, u.name as sender_name FROM messages m LEFT JOIN users u ON m.sender_id = u.id WHERE m.receiver_id = ? ORDER BY m.created_at DESC LIMIT 1
+      `).bind(userId).all();
+      return new Response(JSON.stringify(results), { headers: corsHeaders });
+    }
+
+    // --- RESEÑAS ---
+    if (url.pathname === "/api/review" && request.method === "POST") {
+      const data = await request.json();
+      await env.DB.prepare("INSERT INTO reviews (target_id, author_name, stars, comment, created_at) VALUES (?, ?, ?, ?, datetime('now'))").bind(data.targetId, data.author, data.stars, data.comment).run();
+      return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+    }
+    if (url.pathname.startsWith("/api/reviews/") && request.method === "GET") {
+      const targetId = url.pathname.split("/").pop();
+      const { results } = await env.DB.prepare("SELECT * FROM reviews WHERE target_id = ? ORDER BY created_at DESC").bind(targetId).all();
+      return new Response(JSON.stringify(results), { headers: corsHeaders });
     }
 
     return new Response("Not Found", { status: 404 });
+
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders });
+    return new Response("Error: " + err.message, { status: 500, headers: corsHeaders });
   }
 }
