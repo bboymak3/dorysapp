@@ -39,7 +39,7 @@
         #map { width: 100%; height: 100vh; z-index: 1; }
         #sos-btn { position: fixed; bottom: 90px; left: 20px; width: 60px; height: 60px; border-radius: 50%; background: var(--danger); color: white; border: 4px solid white; font-size: 24px; display: flex; justify-content: center; align-items: center; cursor: pointer; z-index: 2000; animation: pulse-red 2s infinite; }
         
-        /* BOTÓN LISTA */
+        /* BOTÓN LISTA (NUEVO) */
         #list-toggle-btn {
             position: fixed; bottom: 90px; right: 20px;
             width: 60px; height: 60px; border-radius: 50%;
@@ -48,7 +48,7 @@
             cursor: pointer; z-index: 2000; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
         }
 
-        /* LISTA LATERAL */
+        /* LISTA LATERAL (SIDEBAR) */
         #users-sidebar {
             position: fixed; top: 0; right: -300px; width: 300px; height: 100%;
             background: var(--surface); z-index: 2100;
@@ -113,7 +113,7 @@
         .pulse-dot::after { content: ''; position: absolute; width: 100%; height: 100%; background: inherit; border-radius: inherit; opacity: 0.6; animation: pulse-ring 2s infinite; z-index: -1; }
         @keyframes pulse-ring { 0% { transform: scale(1); opacity: 0.6; } 100% { transform: scale(2.5); opacity: 0; } }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1); } }
         @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(231, 76, 60, 0); } 100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); } }
     </style>
 </head>
@@ -315,18 +315,20 @@
                 navigator.geolocation.getCurrentPosition((pos) => {
                     updateUserLocation(pos.coords.latitude, pos.coords.longitude);
                 });
-                // ACTUALIZACIÓN AUTOMÁTICA DE UBICACIÓN
+                // ACTUALIZACIÓN AUTOMÁTICA DE UBICACIÓN AL MOVERSE
                 navigator.geolocation.watchPosition(async (pos) => {
                     if(appState.user) {
                         appState.user.lat = pos.coords.latitude;
                         appState.user.lng = pos.coords.longitude;
                         await fetch('/api/user', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(appState.user) });
+                        
+                        // Mover mi marcador
                         if(appState.userMarker) {
                             appState.userMarker.setLatLng([pos.coords.latitude, pos.coords.longitude]);
                         } else {
                             appState.userMarker = L.marker([pos.coords.latitude, pos.coords.longitude], {icon: createIcon('user')}).addTo(appState.map).bindPopup("Tú");
                         }
-                        loadSidebarList(); 
+                        loadSidebarList(); // Actualizar lista si me muevo
                     }
                 });
             }
@@ -348,7 +350,7 @@
             const sb = document.getElementById('users-sidebar');
             if(appState.sidebarOpen) {
                 sb.classList.add('open');
-                loadSidebarList(); 
+                loadSidebarList(); // Refrescar lista al abrir
             } else {
                 sb.classList.remove('open');
             }
@@ -364,6 +366,7 @@
                 const users = await (await fetch('/api/users')).json();
                 container.innerHTML = '';
                 
+                // Ordenar por distancia
                 const usersWithDist = users.map(u => {
                     if(u.id === appState.user.id) return null;
                     const dist = getDist(appState.user.lat, appState.user.lng, u.lat, u.lng);
@@ -396,7 +399,7 @@
                     `;
                     div.onclick = () => {
                         openModal(u);
-                        toggleSidebar(); 
+                        toggleSidebar(); // Cerrar sidebar al elegir alguien
                     };
                     container.appendChild(div);
                 });
@@ -405,49 +408,18 @@
 
         // --- MAPA ---
         async function loadUsers() {
-            if(!appState.map) return; 
-            
             try {
-                console.log("Cargando usuarios en el mapa...");
-                const response = await fetch('/api/users');
-                
-                if(!response.ok) {
-                    throw new Error("Error del servidor al obtener usuarios");
-                }
-
-                const users = await response.json();
-                console.log("Usuarios recibidos:", users.length);
-
-                if(!Array.isArray(users)) {
-                    console.error("La respuesta no es una lista", users);
-                    return;
-                }
-
+                const users = await (await fetch('/api/users')).json();
                 users.forEach(u => {
                     if(u.id === appState.user.id) return;
-                    if(!u.lat || !u.lng) return;
-
-                    let type = 'user';
-                    if(u.role === 'service') type = 'service';
-                    if(u.role === 'business') type = 'business';
-
-                    const markerId = L.Util.stamp(u.lat + ',' + u.lng);
-                    
-                    if(!appState.map._layers[markerId]) {
-                        const icon = createIcon(type);
-                        const marker = L.marker([u.lat, u.lng], {icon: icon}).addTo(appState.map);
-                        marker.on('click', () => {
-                            openModal(u);
-                        });
+                    const type = (u.role==='service')?'service':(u.role==='business'?'business':'user');
+                    // Evitar duplicados en el mapa (simple check)
+                    if(!appState.map._layers[L.Util.stamp(u.lat + ',' + u.lng)]) {
+                        const m = L.marker([u.lat, u.lng], {icon: createIcon(type)}).addTo(appState.map);
+                        m.on('click', () => openModal(u));
                     }
                 });
-                
-                console.log("Pines dibujados con éxito");
-
-            } catch (error) {
-                console.error("Error crítico cargando usuarios:", error);
-                alert("No se pudieron cargar los usuarios en el mapa. Verifica tu conexión.");
-            }
+            } catch(e) {}
         }
 
         function createIcon(type) {
