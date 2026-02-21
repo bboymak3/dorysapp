@@ -3,210 +3,154 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DORYSAPP PRO</title>
+    <title>DORYSAPP</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --primary: #2ecc71; --dark: #121212; --card: #1e1e1e; }
-        body { margin: 0; padding: 0; background: var(--dark); color: white; font-family: sans-serif; overflow: hidden; }
+        body { margin: 0; background: #121212; color: white; font-family: sans-serif; }
         #map { width: 100%; height: 100vh; position: absolute; z-index: 1; }
-
-        /* INTERFAZ SUPERIOR */
-        #top-ui { position: fixed; top: 10px; left: 10px; right: 10px; z-index: 5000; display: flex; justify-content: space-between; pointer-events: none; }
-        .glass-btn { background: rgba(30,30,30,0.9); padding: 10px 15px; border-radius: 20px; border: 1px solid #444; color: white; pointer-events: auto; cursor: pointer; }
-
-        /* LISTA LATERAL */
-        #side-list { position: fixed; top: 70px; right: 10px; z-index: 4000; width: 180px; background: rgba(30,30,30,0.85); border-radius: 15px; padding: 10px; max-height: 40vh; overflow-y: auto; border: 1px solid #333; backdrop-filter: blur(5px); }
-        .user-item { padding: 8px; border-bottom: 1px solid #444; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.8rem; }
-        .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); }
-
-        /* MODALES */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9000; display: none; justify-content: center; align-items: flex-end; }
-        .modal-overlay.active { display: flex; }
-        .modal-card { background: var(--card); width: 100%; max-width: 500px; border-radius: 20px 20px 0 0; padding: 25px; position: relative; max-height: 90vh; overflow-y: auto; }
-        
-        input, textarea, select { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #444; background: #2a2a2a; color: white; }
-        .btn-main { width: 100%; padding: 14px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; display: block; text-align: center; text-decoration: none; margin-top: 10px; }
-
-        /* CHAT BOX */
-        #chat-window { height: 250px; overflow-y: auto; background: #121212; border-radius: 10px; padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
-        .msg { padding: 8px 12px; border-radius: 10px; max-width: 80%; font-size: 0.9rem; }
-        .msg.me { background: var(--primary); color: black; align-self: flex-end; }
-        .msg.them { background: #333; color: white; align-self: flex-start; }
-
-        .hidden { display: none !important; }
+        #auth { position: fixed; inset: 0; background: #121212; z-index: 9999; display: flex; justify-content: center; align-items: center; }
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 8000; display: none; align-items: flex-end; justify-content: center; }
+        .card { background: #1e1e1e; width: 100%; max-width: 500px; padding: 20px; border-radius: 20px 20px 0 0; }
+        #chat-box { height: 200px; overflow-y: auto; background: #000; padding: 10px; margin: 10px 0; border-radius: 10px; }
+        .msg { margin: 5px; padding: 8px; border-radius: 8px; max-width: 80%; }
+        .me { background: #2ecc71; margin-left: auto; color: black; }
+        .them { background: #333; }
+        input { width: 80%; padding: 10px; border-radius: 5px; border: none; }
+        #side-list { position: fixed; top: 10px; right: 10px; z-index: 5000; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 10px; max-width: 150px; }
     </style>
 </head>
 <body>
 
-    <div id="auth-screen" style="position:fixed; inset:0; background:var(--dark); z-index:10000; display:flex; justify-content:center; align-items:center;">
-        <div class="box" style="text-align:center; width:90%; max-width:350px;">
-            <h2 style="color:var(--primary)">DORYSAPP</h2>
-            <input type="tel" id="login-phone" placeholder="Tu teléfono">
-            <button class="btn-main" style="background:var(--primary);" onclick="checkUser()">ENTRAR</button>
+<div id="auth">
+    <div style="text-align:center;">
+        <h2>DORYSAPP</h2>
+        <input type="tel" id="phone" placeholder="Tu teléfono">
+        <button onclick="login()" style="padding:10px 20px; background:#2ecc71; border:none; border-radius:5px; margin-top:10px;">ENTRAR</button>
+    </div>
+</div>
+
+<div id="side-list">
+    <b>Activos:</b> <div id="users-active"></div>
+</div>
+
+<div id="map"></div>
+
+<div id="user-modal" class="modal">
+    <div class="card">
+        <h3 id="m-name"></h3>
+        <div id="chat-box"></div>
+        <div style="display:flex; gap:5px;">
+            <input type="text" id="m-text" placeholder="Escribe...">
+            <button onclick="sendMsg()" style="background:#2ecc71; border:none; padding:10px; border-radius:5px;">OK</button>
         </div>
+        <button onclick="closeModal()" style="width:100%; background:none; color:white; border:none; margin-top:10px;">Cerrar</button>
     </div>
+</div>
 
-    <div id="top-ui" class="hidden">
-        <div class="glass-btn" onclick="openEditProfile()"><i class="fas fa-user-edit"></i> Mi Perfil</div>
-        <div class="glass-btn"><i class="fas fa-users"></i> <span id="online-count">0</span></div>
-    </div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    let me = null;
+    let map = null;
+    let markers = {};
+    let myMarker = null;
+    let activePartner = null;
+    let chatInt = null;
 
-    <div id="side-list" class="hidden">
-        <div id="user-list-content"></div>
-    </div>
+    async function login() {
+        const phone = document.getElementById('phone').value;
+        const res = await fetch(`/api/check-user?phone=${phone}`);
+        const data = await res.json();
+        
+        if (data.found) me = data.user;
+        else {
+            me = { id: 'U'+Date.now(), name: 'Usuario', phone: phone, role: 'Usuario', lat: 0, lng: 0 };
+            await fetch('/api/user', { method: 'POST', body: JSON.stringify(me) });
+        }
+        
+        document.getElementById('auth').style.display = 'none';
+        initMap();
+    }
 
-    <div id="map"></div>
+    function initMap() {
+        map = L.map('map', { zoomControl: false }).setView([0,0], 2);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-    <div class="modal-overlay" id="user-modal">
-        <div class="modal-card">
-            <h2 id="m-name">Nombre</h2>
-            <span id="m-role" style="color:var(--primary); font-size:0.8rem; font-weight:bold;"></span>
-            <p id="m-details" style="margin: 15px 0; color:#aaa;"></p>
-            
-            <hr border="0" style="border-top:1px solid #333; margin:15px 0;">
-            
-            <div id="chat-section">
-                <div id="chat-window"></div>
-                <div style="display:flex; gap:5px;">
-                    <input type="text" id="chat-input" placeholder="Escribe un mensaje...">
-                    <button onclick="sendMessage()" style="background:var(--primary); border:none; width:50px; border-radius:8px;"><i class="fas fa-paper-plane"></i></button>
-                </div>
-            </div>
+        navigator.geolocation.watchPosition(pos => {
+            const { latitude, longitude } = pos.coords;
+            me.lat = latitude; me.lng = longitude;
 
-            <a href="#" id="m-call" class="btn-main" style="background:#333; color:white; margin-top:15px;"><i class="fas fa-phone"></i> LLAMAR POR TELÉFONO</a>
-            <button class="btn-main" style="background:none; color:#666;" onclick="closeModals()">CERRAR</button>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="edit-modal">
-        <div class="modal-card">
-            <h3>Mi Perfil</h3>
-            <input type="text" id="edit-name" placeholder="Nombre">
-            <input type="text" id="edit-role" placeholder="¿Qué ofreces? (Ej: Taxi, Pizza)">
-            <textarea id="edit-bio" placeholder="Breve descripción sobre ti..."></textarea>
-            <button class="btn-main" style="background:var(--primary);" onclick="saveProfile()">GUARDAR</button>
-            <button class="btn-main" style="background:none; color:#666;" onclick="closeModals()">CANCELAR</button>
-        </div>
-    </div>
-
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-        let app = { user: null, map: null, markers: {}, activeChatPartner: null, chatInterval: null };
-
-        async function checkUser() {
-            const phone = document.getElementById('login-phone').value;
-            if(!phone) return;
-            const res = await fetch(`/api/check-user?phone=${phone}`);
-            const data = await res.json();
-            if(data.found) startApp(data.user);
-            else {
-                const newUser = { id: 'U'+Date.now(), name: 'Nuevo Usuario', phone: phone, role: 'Usuario', lat:0, lng:0 };
-                await fetch('/api/user', { method: 'POST', body: JSON.stringify(newUser) });
-                startApp(newUser);
+            if (!myMarker) {
+                myMarker = L.circleMarker([latitude, longitude], { color: '#3498db', radius: 12 }).addTo(map).bindPopup("Tú");
+                map.setView([latitude, longitude], 15);
+            } else {
+                myMarker.setLatLng([latitude, longitude]);
             }
-        }
+            fetch('/api/user', { method: 'POST', body: JSON.stringify(me) });
+        }, null, { enableHighAccuracy: true });
 
-        function startApp(userData) {
-            app.user = userData;
-            document.getElementById('auth-screen').classList.add('hidden');
-            document.getElementById('top-ui').classList.remove('hidden');
-            document.getElementById('side-list').classList.remove('hidden');
+        setInterval(sync, 5000);
+    }
 
-            app.map = L.map('map', { zoomControl: false }).setView([0,0], 2);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(app.map);
+    async function sync() {
+        const res = await fetch('/api/users');
+        const users = await res.json();
+        const list = document.getElementById('users-active');
+        list.innerHTML = '';
 
-            navigator.geolocation.watchPosition(pos => {
-                const { latitude, longitude } = pos.coords;
-                app.user.lat = latitude; app.user.lng = longitude;
-                fetch('/api/user', { method: 'POST', body: JSON.stringify(app.user) });
-            }, null, { enableHighAccuracy: true });
-
-            setInterval(updateWorld, 5000);
-            updateWorld();
-        }
-
-        async function updateWorld() {
-            try {
-                const res = await fetch('/api/users');
-                const users = await res.json();
-                document.getElementById('online-count').innerText = users.length;
-                
-                const listContent = document.getElementById('user-list-content');
-                listContent.innerHTML = '';
-                const ids = users.map(u => u.id);
-
-                for(let id in app.markers) { if(!ids.includes(id)) { app.map.removeLayer(app.markers[id]); delete app.markers[id]; } }
-
-                users.forEach(u => {
-                    if(u.id === app.user.id) return;
-                    // Lista
-                    const div = document.createElement('div');
-                    div.className = 'user-item';
-                    div.innerHTML = `<div class="dot"></div> <b>${u.name}</b>`;
-                    div.onclick = () => { app.map.flyTo([u.lat, u.lng], 16); openUserModal(u); };
-                    listContent.appendChild(div);
-                    // Mapa
-                    if(!app.markers[u.id]) {
-                        app.markers[u.id] = L.marker([u.lat, u.lng]).addTo(app.map).on('click', () => openUserModal(u));
-                    } else app.markers[u.id].setLatLng([u.lat, u.lng]);
-                });
-            } catch(e){}
-        }
-
-        function openUserModal(u) {
-            app.activeChatPartner = u;
-            document.getElementById('m-name').innerText = u.name;
-            document.getElementById('m-role').innerText = u.role;
-            document.getElementById('m-details').innerText = u.details || u.bio || 'Sin descripción';
-            document.getElementById('m-call').href = `tel:${u.phone}`;
-            document.getElementById('user-modal').classList.add('active');
+        users.forEach(u => {
+            if (u.id === me.id) return;
             
-            loadMessages();
-            clearInterval(app.chatInterval);
-            app.chatInterval = setInterval(loadMessages, 3000);
-        }
+            list.innerHTML += `<div onclick="openUser('${u.id}')" style="cursor:pointer; margin:5px 0;">• ${u.name}</div>`;
 
-        async function loadMessages() {
-            if(!app.activeChatPartner) return;
-            const res = await fetch(`/api/get-messages?u1=${app.user.id}&u2=${app.activeChatPartner.id}`);
-            const msgs = await res.json();
-            const win = document.getElementById('chat-window');
-            win.innerHTML = msgs.map(m => `
-                <div class="msg ${m.from_id === app.user.id ? 'me' : 'them'}">${m.text}</div>
-            `).join('');
-            win.scrollTop = win.scrollHeight;
-        }
+            if (!markers[u.id]) {
+                markers[u.id] = L.marker([u.lat, u.lng]).addTo(map).on('click', () => openUser(u));
+            } else {
+                markers[u.id].setLatLng([u.lat, u.lng]);
+            }
+        });
+    }
 
-        async function sendMessage() {
-            const input = document.getElementById('chat-input');
-            if(!input.value) return;
-            const msg = { from_id: app.user.id, to_id: app.activeChatPartner.id, text: input.value };
-            await fetch('/api/send-message', { method: 'POST', body: JSON.stringify(msg) });
-            input.value = '';
-            loadMessages();
-        }
+    async function openUser(u) {
+        if (typeof u === 'string') { // Si viene de la lista
+            const res = await fetch('/api/users');
+            const all = await res.json();
+            activePartner = all.find(x => x.id === u);
+        } else activePartner = u;
 
-        function openEditProfile() {
-            document.getElementById('edit-name').value = app.user.name;
-            document.getElementById('edit-role').value = app.user.role;
-            document.getElementById('edit-bio').value = app.user.bio || '';
-            document.getElementById('edit-modal').classList.add('active');
-        }
+        document.getElementById('m-name').innerText = activePartner.name;
+        document.getElementById('user-modal').style.display = 'flex';
+        
+        loadChat();
+        if (chatInt) clearInterval(chatInt);
+        chatInt = setInterval(loadChat, 3000);
+    }
 
-        async function saveProfile() {
-            app.user.name = document.getElementById('edit-name').value;
-            app.user.role = document.getElementById('edit-role').value;
-            app.user.bio = document.getElementById('edit-bio').value;
-            await fetch('/api/user', { method: 'POST', body: JSON.stringify(app.user) });
-            closeModals();
-        }
+    async function loadChat() {
+        if (!activePartner) return;
+        const res = await fetch(`/api/get-messages?u1=${me.id}&u2=${activePartner.id}`);
+        const msgs = await res.json();
+        const box = document.getElementById('chat-box');
+        box.innerHTML = msgs.map(m => `<div class="msg ${m.from_id === me.id ? 'me' : 'them'}">${m.text}</div>`).join('');
+        box.scrollTop = box.scrollHeight;
+    }
 
-        function closeModals() {
-            document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
-            app.activeChatPartner = null;
-            clearInterval(app.chatInterval);
-        }
-    </script>
+    async function sendMsg() {
+        const text = document.getElementById('m-text').value;
+        if (!text) return;
+        await fetch('/api/send-message', {
+            method: 'POST',
+            body: JSON.stringify({ from_id: me.id, to_id: activePartner.id, text })
+        });
+        document.getElementById('m-text').value = '';
+        loadChat();
+    }
+
+    function closeModal() {
+        document.getElementById('user-modal').style.display = 'none';
+        activePartner = null;
+        clearInterval(chatInt);
+    }
+</script>
 </body>
 </html>
