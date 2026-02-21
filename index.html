@@ -3,141 +3,180 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DORYSAPP</title>
+    <title>DORYSAPP PRO</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --bg: #121212; --surface: #1e1e1e; --primary: #2ecc71; --text: #fff; }
-        * { margin:0; padding:0; box-sizing:border-box; font-family: sans-serif; }
-        body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
-        #map { width: 100%; height: 100vh; background: #000; }
-        
-        /* AUTH */
-        #auth-screen { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 3000; display: flex; justify-content: center; align-items: center; }
-        .auth-box { background: var(--surface); padding: 25px; border-radius: 15px; width: 90%; max-width: 400px; text-align: center; }
-        .input-group { margin: 15px 0; text-align: left; }
-        .input-group input { width: 100%; padding: 12px; background: #333; border: 1px solid #444; color: white; border-radius: 8px; }
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; background: var(--primary); }
+        :root { --primary: #2ecc71; --dark: #121212; --card: #1e1e1e; }
+        body { margin: 0; padding: 0; background: var(--dark); color: white; font-family: 'Segoe UI', sans-serif; }
+        #map { width: 100%; height: 100vh; position: absolute; z-index: 1; }
 
-        /* LISTA LATERAL */
-        #online-list { position: fixed; top: 80px; right: 10px; z-index: 1000; width: 150px; background: rgba(30,30,30,0.8); border-radius: 10px; padding: 10px; max-height: 200px; overflow-y: auto; font-size: 0.8rem; }
+        /* MODAL DE FICHA DETALLADA */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9000; display: none; justify-content: center; align-items: flex-end; }
+        .modal-overlay.active { display: flex; }
+        .modal-card { background: var(--card); width: 100%; max-width: 500px; border-radius: 20px 20px 0 0; padding: 25px; animation: slideUp 0.3s ease; position: relative; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; color: #666; }
+        .profile-header { display: flex; gap: 15px; align-items: center; margin-bottom: 20px; }
+        .avatar-circle { width: 60px; height: 60px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+        .badge { background: #333; padding: 4px 10px; border-radius: 10px; font-size: 11px; font-weight: bold; color: var(--primary); text-transform: uppercase; }
         
+        .info-box { background: #2a2a2a; padding: 15px; border-radius: 12px; margin: 15px 0; }
+        .btn-action { width: 100%; padding: 14px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; display: block; text-align: center; text-decoration: none; margin-bottom: 10px; }
+
+        /* AUTH & UI */
+        #auth-screen { position: fixed; inset: 0; background: var(--dark); z-index: 10000; display: flex; justify-content: center; align-items: center; }
+        .box { background: var(--card); padding: 30px; border-radius: 15px; text-align: center; width: 90%; max-width: 350px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #333; background: #2a2a2a; color: white; }
         .hidden { display: none !important; }
-        .custom-pin { border-radius: 50%; border: 2px solid white; display: flex; justify-content: center; align-items: center; color: white; background: var(--primary); }
     </style>
 </head>
 <body>
 
     <div id="auth-screen">
-        <div class="auth-box">
-            <h2>DORYSAPP</h2>
+        <div class="box">
+            <h2 style="color:var(--primary)">DORYSAPP</h2>
             <div id="login-view">
-                <div class="input-group"><input type="tel" id="login-phone" placeholder="Teléfono..."></div>
-                <button class="btn" onclick="checkUser()">Entrar</button>
+                <input type="tel" id="login-phone" placeholder="Ingresa tu teléfono">
+                <button class="btn-action" style="background:var(--primary); color:black;" onclick="checkUser()">ENTRAR</button>
             </div>
             <div id="register-view" class="hidden">
-                <div class="input-group"><input type="text" id="reg-name" placeholder="Tu Nombre..."></div>
-                <button class="btn" onclick="registerUser()">Completar Registro</button>
+                <input type="text" id="reg-name" placeholder="Tu nombre y apellido">
+                <input type="text" id="reg-details" placeholder="¿Qué haces? (Taxi, Vendedor...)">
+                <button class="btn-action" style="background:var(--primary); color:black;" onclick="registerUser()">CREAR CUENTA</button>
             </div>
         </div>
     </div>
 
-    <div id="online-list" class="hidden">
-        <p style="color:var(--primary); font-weight:bold; margin-bottom:5px;">ACTIVOS</p>
-        <div id="user-list-content"></div>
-    </div>
-
     <div id="map"></div>
+
+    <div class="modal-overlay" id="user-modal">
+        <div class="modal-card">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <div class="profile-header">
+                <div class="avatar-circle" id="m-avatar"><i class="fas fa-user"></i></div>
+                <div>
+                    <h2 id="m-name" style="margin:0">Nombre</h2>
+                    <span id="m-role" class="badge">Usuario</span>
+                </div>
+            </div>
+            
+            <div class="info-box">
+                <small style="color:#888">SOBRE MÍ / SERVICIOS</small>
+                <p id="m-details" style="margin-top:5px; line-height:1.4;">Cargando detalles...</p>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <div style="flex:1; background:#2a2a2a; padding:10px; border-radius:10px; text-align:center;">
+                    <small style="color:#888">Distancia</small><br><b id="m-dist">0m</b>
+                </div>
+                <div style="flex:1; background:#2a2a2a; padding:10px; border-radius:10px; text-align:center;">
+                    <small style="color:#888">Estado</small><br><b style="color:var(--primary)">Activo</b>
+                </div>
+            </div>
+
+            <a href="#" id="m-call" class="btn-action" style="background:#333; color:white;">LLAMAR AHORA</a>
+            <button class="btn-action" style="background:var(--primary); color:black;" onclick="alert('Chat próximamente')">ENVIAR MENSAJE</button>
+        </div>
+    </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const appState = { 
-            user: null, map: null, markers: {}, 
-            myMarker: null 
-        };
+        let app = { user: null, map: null, markers: {}, myMarker: null };
 
         async function checkUser() {
             const phone = document.getElementById('login-phone').value;
             const res = await fetch(`/api/check-user?phone=${phone}`);
             const data = await res.json();
-            if(data.found) enterApp(data.user);
-            else document.getElementById('login-view').classList.add('hidden'), document.getElementById('register-view').classList.remove('hidden');
+            if(data.found) startApp(data.user);
+            else {
+                document.getElementById('login-view').classList.add('hidden');
+                document.getElementById('register-view').classList.remove('hidden');
+            }
         }
 
         async function registerUser() {
             const user = {
-                id: 'U' + Date.now(),
+                id: 'U' + Math.random().toString(36).substr(2, 9),
                 name: document.getElementById('reg-name').value,
                 phone: document.getElementById('login-phone').value,
-                role: 'user', lat: 0, lng: 0
+                details: document.getElementById('reg-details').value,
+                role: 'Socio', lat: 0, lng: 0
             };
             await fetch('/api/user', { method: 'POST', body: JSON.stringify(user) });
-            enterApp(user);
+            startApp(user);
         }
 
-        function enterApp(user) {
-            appState.user = user;
+        function startApp(userData) {
+            app.user = userData;
             document.getElementById('auth-screen').classList.add('hidden');
-            document.getElementById('online-list').classList.remove('hidden');
+            app.map = L.map('map', { zoomControl: false }).setView([0,0], 2);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(app.map);
 
-            appState.map = L.map('map', { zoomControl: false }).setView([0,0], 2);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(appState.map);
-
-            // Rastreo de ubicación
-            navigator.geolocation.watchPosition(async (pos) => {
+            navigator.geolocation.watchPosition(pos => {
                 const { latitude, longitude } = pos.coords;
-                appState.user.lat = latitude;
-                appState.user.lng = longitude;
+                app.user.lat = latitude; app.user.lng = longitude;
 
-                // Actualizar mi propio marcador
-                if(!appState.myMarker) {
-                    appState.myMarker = L.marker([latitude, longitude]).addTo(appState.map).bindPopup("Tú");
-                    appState.map.setView([latitude, longitude], 15);
+                if(!app.myMarker) {
+                    app.myMarker = L.circleMarker([latitude, longitude], { color: '#3498db', radius: 10, fillOpacity: 0.9 }).addTo(app.map);
+                    app.myMarker.on('click', () => openDetails(app.user));
+                    app.map.setView([latitude, longitude], 15);
                 } else {
-                    appState.myMarker.setLatLng([latitude, longitude]);
+                    app.myMarker.setLatLng([latitude, longitude]);
                 }
+                fetch('/api/user', { method: 'POST', body: JSON.stringify(app.user) });
+            }, null, { enableHighAccuracy: true });
 
-                // Enviar a DB
-                fetch('/api/user', { method: 'POST', body: JSON.stringify(appState.user) });
-            }, (err) => console.error("Error GPS:", err), { enableHighAccuracy: true });
-
-            setInterval(syncWorld, 5000);
-            syncWorld();
+            setInterval(updateOthers, 5000);
+            updateOthers();
         }
 
-        async function syncWorld() {
+        async function updateOthers() {
             try {
                 const res = await fetch('/api/users');
                 const users = await res.json();
-                
-                const listContent = document.getElementById('user-list-content');
-                listContent.innerHTML = '';
-                
-                const activeIds = users.map(u => u.id);
+                const serverIds = users.map(u => u.id);
 
-                // Borrar inactivos
-                Object.keys(appState.markers).forEach(id => {
-                    if(!activeIds.includes(id)) {
-                        appState.map.removeLayer(appState.markers[id]);
-                        delete appState.markers[id];
-                    }
-                });
+                // Borrar los que se fueron
+                for (let id in app.markers) {
+                    if (!serverIds.includes(id)) { app.map.removeLayer(app.markers[id]); delete app.markers[id]; }
+                }
 
-                // Dibujar otros
+                // Crear o mover
                 users.forEach(u => {
-                    if(u.id === appState.user.id) return;
-
-                    // Lista
-                    listContent.innerHTML += `<div>${u.name}</div>`;
-
-                    // Mapa
-                    if(!appState.markers[u.id]) {
-                        appState.markers[u.id] = L.marker([u.lat, u.lng]).addTo(appState.map).bindPopup(u.name);
+                    if (u.id === app.user.id) return;
+                    if (!app.markers[u.id]) {
+                        app.markers[u.id] = L.marker([u.lat, u.lng]).addTo(app.map);
+                        app.markers[u.id].on('click', () => openDetails(u));
                     } else {
-                        appState.markers[u.id].setLatLng([u.lat, u.lng]);
+                        app.markers[u.id].setLatLng([u.lat, u.lng]);
                     }
                 });
-            } catch(e) { console.error("Error sync:", e); }
+            } catch (e) {}
+        }
+
+        function openDetails(u) {
+            document.getElementById('m-name').innerText = u.name;
+            document.getElementById('m-role').innerText = u.role || 'Usuario';
+            document.getElementById('m-details').innerText = u.details || 'Sin detalles disponibles.';
+            document.getElementById('m-call').href = `tel:${u.phone}`;
+            
+            // Distancia
+            const d = getDist(app.user.lat, app.user.lng, u.lat, u.lng);
+            document.getElementById('m-dist').innerText = d < 1000 ? Math.round(d)+'m' : (d/1000).toFixed(1)+'km';
+
+            document.getElementById('user-modal').classList.add('active');
+        }
+
+        function closeModal() { document.getElementById('user-modal').classList.remove('active'); }
+
+        function getDist(lat1, lon1, lat2, lon2) {
+            const R = 6371e3;
+            const p1 = lat1 * Math.PI/180; const p2 = lat2 * Math.PI/180;
+            const dp = (lat2-lat1) * Math.PI/180; const dl = (lon2-lon1) * Math.PI/180;
+            const a = Math.sin(dp/2)**2 + Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
+            return 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)) * R;
         }
     </script>
 </body>
