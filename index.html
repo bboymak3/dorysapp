@@ -395,6 +395,21 @@
 
         function toggleSOS() { document.body.classList.toggle('sos-active'); alert("MODO PÁNICO"); }
         function getDist(l1, lo1, l2, lo2) { var R = 6371; var dLat = (l2-l1)*Math.PI/180; var dLo = (lo2-lo1)*Math.PI/180; var a = Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(l1*Math.PI/180)*Math.cos(l2*Math.PI/180)*Math.sin(dLo/2)*Math.sin(dLo/2); var c = 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); return R*c*1000; }
+
+
+    // --- ACTUALIZACIÓN AUTOMÁTICA DEL CHAT ---
+    // Revisa si hay mensajes nuevos cada 3 segundos si el chat está abierto
+    setInterval(() => {
+        // Solo busca mensajes si el chat está abierto y tienes un destinatario seleccionado
+        if(appState.chatTarget && document.getElementById('chat-modal').classList.contains('active')) {
+            loadMessages();
+        }
+    }, 3000); 
+
+
+
     </script>
+
+
 </body>
 </html>
