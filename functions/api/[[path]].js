@@ -20,13 +20,11 @@ export async function onRequest(context) {
       return new Response(JSON.stringify(user ? { found: true, user } : { found: false }), { headers: corsHeaders });
     }
 
-    // --- RUTA: GUARDAR USUARIO / ACTUALIZAR UBICACIÓN ---
-    // Cada POST actualiza 'last_seen' a la hora actual.
+    // --- RUTA: GUARDAR USUARIO / ACTUALIZAR ---
     if (url.pathname === "/api/user" && request.method === "POST") {
       const data = await request.json();
-      // Usamos ON CONFLICT (Upsert) para actualizar si el usuario ya existe
       await env.DB.prepare(`
-        INSERT INTO users (id, name, phone, role, lat, lng, details, bio, avatar_url, status, last_seen, created_at)
+        INSERT INTO users (id, name, phone, role, lat, lng, details, bio, avatar_url, status, last_seen, created_at) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
         ON CONFLICT(id) DO UPDATE SET 
           lat = excluded.lat, 
@@ -44,7 +42,7 @@ export async function onRequest(context) {
         data.lat, 
         data.lng, 
         data.details || '',
-        data.bio || '',
+        data.bio || 'Sin biografía',
         data.avatar_url || '',
         data.status || 'offline'
       ).run();
@@ -52,25 +50,38 @@ export async function onRequest(context) {
       return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
     }
 
-    // --- RUTA: LISTA DE USUARIOS (FILTRO DE ACTIVIDAD) ---
-    // Solo devuelve usuarios vistos en el último minuto.
+    // --- RUTA: LISTA USUARIOS (FILTRO INACTIVIDAD 1 MIN) ---
     if (url.pathname === "/api/users" && request.method === "GET") {
       const { results } = await env.DB.prepare(`
         SELECT * FROM users 
-        WHERE last_seen > datetime('now', '-60 seconds')
+        WHERE last_seen > datetime('now', '-60 seconds') 
         ORDER BY last_seen DESC
       `).all();
       return new Response(JSON.stringify(results), { headers: corsHeaders });
     }
 
-    // --- RUTA: ACTUALIZAR MI PERFIL ---
+    // --- RUTA: ACTUALIZAR PERFIL ---
     if (url.pathname === "/api/update-profile" && request.method === "POST") {
       const data = await request.json();
       await env.DB.prepare("UPDATE users SET bio = ?, avatar_url = ? WHERE id = ?").bind(data.bio, data.avatar_url, data.id).run();
       return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
     }
 
-    // --- RUTAS DE CHAT Y NOTIFICACIONES ---
+    // --- RUTA: CHECK NOTIFICATIONS (CORREGIDO) ---
+    // Ahora filtra para no notificar si el mensaje fue enviado por mí mismo
+    if (url.pathname === "/api/check-notifications" && request.method === "GET") {
+      const userId = url.searchParams.get("user_id");
+      const { results } = await env.DB.prepare(`
+        SELECT m.*, u.name as sender_name FROM messages m
+        LEFT JOIN users u ON m.sender_id = u.id
+        WHERE m.receiver_id = ? AND m.sender_id != ? 
+        ORDER BY m.created_at DESC LIMIT 1
+      `).bind(userId, userId).all();
+      
+      return new Response(JSON.stringify(results), { headers: corsHeaders });
+    }
+
+    // --- CHAT ---
     if (url.pathname.startsWith("/api/messages/") && request.method === "GET") {
       const otherUserId = url.pathname.split("/").pop();
       const myId = url.searchParams.get("me");
@@ -83,13 +94,6 @@ export async function onRequest(context) {
       const data = await request.json();
       await env.DB.prepare("INSERT INTO messages (sender_id, receiver_id, message, created_at) VALUES (?, ?, ?, datetime('now'))").bind(data.sender_id, data.receiver_id, data.message).run();
       return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
-    }
-    if (url.pathname === "/api/check-notifications" && request.method === "GET") {
-      const userId = url.searchParams.get("user_id");
-      const { results } = await env.DB.prepare(`
-        SELECT m.*, u.name as sender_name FROM messages m LEFT JOIN users u ON m.sender_id = u.id WHERE m.receiver_id = ? ORDER BY m.created_at DESC LIMIT 1
-      `).bind(userId).all();
-      return new Response(JSON.stringify(results), { headers: corsHeaders });
     }
 
     // --- RESEÑAS ---
