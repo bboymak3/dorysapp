@@ -3,154 +3,542 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DORYSAPP</title>
+    <title>DORYSAPP - Red Social Urbana</title>
+    <link rel="manifest" href="/manifest.json">
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <style>
-        body { margin: 0; background: #121212; color: white; font-family: sans-serif; }
-        #map { width: 100%; height: 100vh; position: absolute; z-index: 1; }
-        #auth { position: fixed; inset: 0; background: #121212; z-index: 9999; display: flex; justify-content: center; align-items: center; }
-        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 8000; display: none; align-items: flex-end; justify-content: center; }
-        .card { background: #1e1e1e; width: 100%; max-width: 500px; padding: 20px; border-radius: 20px 20px 0 0; }
-        #chat-box { height: 200px; overflow-y: auto; background: #000; padding: 10px; margin: 10px 0; border-radius: 10px; }
-        .msg { margin: 5px; padding: 8px; border-radius: 8px; max-width: 80%; }
-        .me { background: #2ecc71; margin-left: auto; color: black; }
-        .them { background: #333; }
-        input { width: 80%; padding: 10px; border-radius: 5px; border: none; }
-        #side-list { position: fixed; top: 10px; right: 10px; z-index: 5000; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 10px; max-width: 150px; }
+        :root {
+            --bg-dark: #121212; --surface: #1e1e1e; --primary: #2ecc71; --service: #f1c40f; --business: #9b59b6; --danger: #e74c3c; --text: #ffffff; --text-sec: #aaaaaa;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: var(--bg-dark); color: var(--text); height: 100vh; overflow: hidden; }
+
+        /* AUTH */
+        #auth-screen { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 3000; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .auth-box { background: var(--surface); width: 100%; max-width: 400px; padding: 25px; border-radius: 15px; text-align: center; }
+        .role-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 20px 0; }
+        .role-card { background: #2a2a2a; padding: 15px 5px; border-radius: 10px; cursor: pointer; border: 2px solid transparent; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .role-card.active-user { border-color: var(--primary); background: rgba(46, 204, 113, 0.1); color: var(--primary); }
+        .role-card.active-service { border-color: var(--service); background: rgba(241, 196, 15, 0.1); color: var(--service); }
+        .role-card.active-business { border-color: var(--business); background: rgba(155, 89, 182, 0.1); color: var(--business); }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group label { display: block; margin-bottom: 5px; color: var(--text-sec); font-size: 0.9rem; }
+        .input-group input, .input-group select, .input-group textarea { width: 100%; padding: 12px; background: #333; border: 1px solid #444; color: white; border-radius: 8px; outline: none; resize: none; }
+        .btn-main { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-enter { background: var(--primary); color: black; }
+        .hidden { display: none !important; }
+
+        /* HEADER */
+        #user-info-bar { position: fixed; top: 10px; left: 10px; right: 10px; background: rgba(30,30,30,0.9); backdrop-filter: blur(5px); padding: 10px 15px; border-radius: 30px; z-index: 2000; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        #header-icon-container { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .header-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #333; border: 2px solid var(--primary); }
+
+        /* MAPA */
+        #map { width: 100%; height: 100vh; z-index: 1; }
+        #sos-btn { position: fixed; bottom: 90px; left: 20px; width: 60px; height: 60px; border-radius: 50%; background: var(--danger); color: white; border: 4px solid white; font-size: 24px; display: flex; justify-content: center; align-items: center; cursor: pointer; z-index: 2000; animation: pulse-red 2s infinite; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(231, 76, 60, 0); } 100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); } }
+
+        /* LISTA LATERAL USUARIOS */
+        #users-drawer { position: fixed; top: 80px; right: 10px; z-index: 1500; width: 220px; max-height: 60vh; overflow-y: auto; background: rgba(30,30,30,0.95); backdrop-filter: blur(10px); border-radius: 15px; padding: 15px; border: 1px solid #333; box-shadow: -5px 5px 15px rgba(0,0,0,0.5); transition: transform 0.3s ease; transform: translateX(0); }
+        #users-drawer.collapsed { transform: translateX(120%); }
+        .user-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #444; cursor: pointer; }
+        .user-item:last-child { border-bottom: none; }
+        .user-avatar-mini { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #444; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; }
+        .user-status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 5px var(--primary); }
+        
+        /* MODALES */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2500; display: none; justify-content: center; align-items: flex-end; }
+        .modal-overlay.active { display: flex; animation: slideUp 0.3s ease; }
+        .modal-card { background: var(--surface); width: 100%; max-width: 500px; border-radius: 20px 20px 0 0; padding: 20px; max-height: 85vh; overflow-y: auto; position: relative; display: flex; flex-direction: column; }
+        .modal-header { display: flex; justify-content: space-between; margin-bottom: 15px; }
+        .close-modal { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+
+        /* FICHA PERFIL */
+        .profile-header { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #333; }
+        .profile-big-avatar { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); background: #333; display: flex; justify-content: center; align-items: center; font-size: 2rem; color: #666; }
+        .profile-info h2 { font-size: 1.4rem; margin-bottom: 5px; }
+        .status-badge { display: inline-block; padding: 4px 8px; border-radius: 10px; font-size: 0.75rem; margin-top: 5px; background: #444; }
+        .status-online { background: rgba(46, 204, 113, 0.2); color: var(--primary); }
+        .status-offline { background: rgba(170, 170, 170, 0.2); color: #aaa; }
+        .profile-bio { color: var(--text-sec); font-style: italic; margin-bottom: 15px; line-height: 1.4; font-size: 0.9rem; }
+
+        /* CHAT */
+        #chat-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; min-height: 200px; }
+        .msg { max-width: 75%; padding: 10px; border-radius: 15px; font-size: 0.9rem; }
+        .msg-own { align-self: flex-end; background: var(--primary); color: black; border-bottom-right-radius: 2px; }
+        .msg-other { align-self: flex-start; background: #444; color: white; border-bottom-left-radius: 2px; }
+        .chat-input-area { display: flex; gap: 10px; margin-top: auto; }
+        .chat-input-area input { flex: 1; padding: 10px; border-radius: 20px; border: none; background: #333; color: white; }
+
+        /* NOTIFICACION */
+        #notification-overlay { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--surface); padding: 15px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.5); z-index: 4000; display: none; flex-direction: column; align-items: center; width: 90%; max-width: 350px; border: 1px solid var(--primary); animation: slideDown 0.3s ease; }
+        #notification-overlay.active { display: flex; }
+        .notif-actions { display: flex; gap: 10px; width: 100%; margin-top: 15px; }
+        .btn-accept { flex: 1; padding: 8px; background: var(--primary); border: none; border-radius: 5px; cursor: pointer; color: black; font-weight: bold; }
+        .btn-reject { flex: 1; padding: 8px; background: #333; border: none; border-radius: 5px; cursor: pointer; color: white; }
+
+        .review-item { background: #252525; padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 0.9rem; }
+        .stars { color: gold; }
+        .stat-box { background: #2a2a2a; padding: 10px; border-radius: 10px; text-align: center; display: inline-block; width: 48%; margin-right: 2%; }
+
+        .custom-pin { display: flex; justify-content: center; align-items: center; color: white; border-radius: 50%; border: 2px solid white; box-shadow: 0 3px 5px rgba(0,0,0,0.5); }
+        .pin-user { background: var(--primary); }
+        .pin-service { background: var(--service); clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); border-radius: 0; border: none; }
+        .pin-business { background: var(--business); border-radius: 8px; }
+        .pulse-dot::after { content: ''; position: absolute; width: 100%; height: 100%; background: inherit; border-radius: inherit; opacity: 0.6; animation: pulse-ring 2s infinite; z-index: -1; }
+        @keyframes pulse-ring { 0% { transform: scale(1); opacity: 0.6; } 100% { transform: scale(2.5); opacity: 0; } }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
 <body>
 
-<div id="auth">
-    <div style="text-align:center;">
-        <h2>DORYSAPP</h2>
-        <input type="tel" id="phone" placeholder="Tu teléfono">
-        <button onclick="login()" style="padding:10px 20px; background:#2ecc71; border:none; border-radius:5px; margin-top:10px;">ENTRAR</button>
-    </div>
-</div>
-
-<div id="side-list">
-    <b>Activos:</b> <div id="users-active"></div>
-</div>
-
-<div id="map"></div>
-
-<div id="user-modal" class="modal">
-    <div class="card">
-        <h3 id="m-name"></h3>
-        <div id="chat-box"></div>
-        <div style="display:flex; gap:5px;">
-            <input type="text" id="m-text" placeholder="Escribe...">
-            <button onclick="sendMsg()" style="background:#2ecc71; border:none; padding:10px; border-radius:5px;">OK</button>
+    <!-- AUTH -->
+    <div id="auth-screen">
+        <div class="auth-box">
+            <h2 style="color:var(--primary); margin-bottom: 10px;">DORYSAPP</h2>
+            <div id="login-view">
+                <p style="color:#aaa; margin-bottom: 20px;">Ingresa tu número</p>
+                <div class="input-group"><label>Teléfono</label><input type="tel" id="login-phone" placeholder="0414..."></div>
+                <button class="btn-main btn-enter" onclick="checkUser()">Entrar</button>
+            </div>
+            <div id="register-view" class="hidden">
+                <p style="color:#aaa; margin-bottom: 10px;">Registro</p>
+                <div class="role-grid">
+                    <div class="role-card active-user" id="role-user" onclick="selectRole('user')"><i class="fa-solid fa-user"></i><span>Yo</span></div>
+                    <div class="role-card" id="role-service" onclick="selectRole('service')"><i class="fa-solid fa-taxi"></i><span>Servicio</span></div>
+                    <div class="role-card" id="role-business" onclick="selectRole('business')"><i class="fa-solid fa-store"></i><span>Negocio</span></div>
+                </div>
+                <div class="input-group"><label>Nombre</label><input type="text" id="reg-name"></div>
+                <div class="input-group"><label>Apellido</label><input type="text" id="reg-surname"></div>
+                <div class="input-group"><label>Teléfono</label><input type="tel" id="reg-phone" readonly></div>
+                <div class="input-group hidden" id="service-options"><label>Servicio</label><select id="reg-type"><option value="Taxi">Taxi</option><option value="MotoTaxi">MotoTaxi</option><option value="Delivery">Delivery</option></select></div>
+                <div class="input-group hidden" id="business-options"><label>Ofreces</label><input type="text" id="reg-offer"></div>
+                <button class="btn-main" onclick="registerUser()">Crear Cuenta</button>
+                <button class="btn-main" style="background:transparent; border:1px solid #444; margin-top:5px;" onclick="showLogin()">Volver</button>
+            </div>
         </div>
-        <button onclick="closeModal()" style="width:100%; background:none; color:white; border:none; margin-top:10px;">Cerrar</button>
     </div>
-</div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-    let me = null;
-    let map = null;
-    let markers = {};
-    let myMarker = null;
-    let activePartner = null;
-    let chatInt = null;
+    <!-- NOTIFICACION -->
+    <div id="notification-overlay">
+        <div style="font-weight:bold; color:var(--primary); margin-bottom:5px;">💬 Nuevo Mensaje</div>
+        <div id="notif-text" style="font-size:0.9rem; text-align:center; margin-bottom:15px;">Te ha escrito un mensaje...</div>
+        <div class="notif-actions">
+            <button class="btn-reject" onclick="dismissNotification()">Ignorar</button>
+            <button class="btn-accept" onclick="acceptNotification()">Ver Chat</button>
+        </div>
+    </div>
 
-    async function login() {
-        const phone = document.getElementById('phone').value;
-        const res = await fetch(`/api/check-user?phone=${phone}`);
-        const data = await res.json();
-        
-        if (data.found) me = data.user;
-        else {
-            me = { id: 'U'+Date.now(), name: 'Usuario', phone: phone, role: 'Usuario', lat: 0, lng: 0 };
-            await fetch('/api/user', { method: 'POST', body: JSON.stringify(me) });
-        }
-        
-        document.getElementById('auth').style.display = 'none';
-        initMap();
-    }
+    <!-- HEADER -->
+    <div id="user-info-bar" class="hidden">
+        <div id="header-icon-container" onclick="openMyProfile()">
+            <img id="header-avatar" class="header-avatar" src="" alt="Yo" style="display:none;">
+            <i id="header-fallback-icon" class="fa-solid fa-user" style="font-size: 1.2rem; color: var(--primary);"></i>
+            <div>
+                <span id="display-name" style="font-weight:bold;">Usuario</span>
+                <br><span id="display-role" style="font-size:0.75rem; color:#aaa;">Rol</span>
+            </div>
+        </div>
+        <button onclick="toggleUserList()" style="background:none; border:none; color:#aaa; font-size:1.2rem;"><i class="fa-solid fa-users"></i></button>
+    </div>
 
-    function initMap() {
-        map = L.map('map', { zoomControl: false }).setView([0,0], 2);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+    <!-- LISTA LATERAL DE USUARIOS -->
+    <div id="users-drawer" class="collapsed">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid #444; padding-bottom:5px;">
+            <span style="font-weight:bold; color:var(--text-sec);">EN LÍNEA</span>
+            <small style="color:#666;">(Actualizado)</small>
+        </div>
+        <div id="users-list-content"></div>
+    </div>
 
-        navigator.geolocation.watchPosition(pos => {
-            const { latitude, longitude } = pos.coords;
-            me.lat = latitude; me.lng = longitude;
+    <div id="map"></div>
+    <button id="sos-btn" onclick="toggleSOS()" class="hidden"><i class="fa-solid fa-bell"></i></button>
 
-            if (!myMarker) {
-                myMarker = L.circleMarker([latitude, longitude], { color: '#3498db', radius: 12 }).addTo(map).bindPopup("Tú");
-                map.setView([latitude, longitude], 15);
-            } else {
-                myMarker.setLatLng([latitude, longitude]);
-            }
-            fetch('/api/user', { method: 'POST', body: JSON.stringify(me) });
-        }, null, { enableHighAccuracy: true });
+    <!-- MODAL PERFIL PROPIO -->
+    <div class="modal-overlay" id="my-profile-modal">
+        <div class="modal-card">
+            <div class="modal-header"><h3>Mi Perfil</h3><button class="close-modal" onclick="closeModal('my-profile-modal')">&times;</button></div>
+            <div style="text-align:center; margin-bottom:20px;">
+                <img id="edit-avatar-preview" src="" style="width:100px; height:100px; border-radius:50%; object-fit:cover; background:#333; margin-bottom:10px;">
+                <br><label style="color:var(--primary); cursor:pointer; font-size:0.9rem;">URL de Foto</label>
+                <input type="text" id="edit-avatar-input" placeholder="https://..." style="margin-top:5px; padding:8px; width:100%;">
+            </div>
+            <div class="input-group"><label>Biografía</label><textarea id="edit-bio" rows="3" placeholder="Cuéntanos sobre ti..."></textarea></div>
+            <button class="btn-main btn-enter" onclick="saveMyProfile()">Guardar</button>
+        </div>
+    </div>
 
-        setInterval(sync, 5000);
-    }
-
-    async function sync() {
-        const res = await fetch('/api/users');
-        const users = await res.json();
-        const list = document.getElementById('users-active');
-        list.innerHTML = '';
-
-        users.forEach(u => {
-            if (u.id === me.id) return;
+    <!-- MODAL DETALLES -->
+    <div class="modal-overlay" id="detail-modal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <button class="close-modal" onclick="closeModal('detail-modal')" style="background:none; border:none; color:white; font-size:1.5rem;">&times;</button>
+            </div>
+            <div class="profile-header">
+                <div id="modal-avatar" class="profile-big-avatar">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <div class="profile-info">
+                    <h2 id="modal-name">Nombre</h2>
+                    <span id="modal-status-badge" class="status-badge status-offline">Desconectado</span>
+                    <p id="modal-role-text" style="color:var(--text-sec); font-size:0.9rem;">Rol</p>
+                </div>
+            </div>
+            <p id="modal-bio" class="profile-bio">Sin biografía...</p>
             
-            list.innerHTML += `<div onclick="openUser('${u.id}')" style="cursor:pointer; margin:5px 0;">• ${u.name}</div>`;
+            <div style="margin-bottom:20px;">
+                <div class="stat-box"><small>Distancia</small><br><b id="modal-dist">0 m</b></div>
+                <div class="stat-box"><small>Tiempo est.</small><br><b id="modal-time">0 min</b></div>
+            </div>
 
-            if (!markers[u.id]) {
-                markers[u.id] = L.marker([u.lat, u.lng]).addTo(map).on('click', () => openUser(u));
-            } else {
-                markers[u.id].setLatLng([u.lat, u.lng]);
-            }
-        });
-    }
+            <h4>Reseñas</h4>
+            <div id="reviews-list" style="margin-top:10px; max-height:150px; overflow-y:auto;"></div>
+            <div style="margin-top:15px; display:flex; gap:10px;">
+                <select id="rating-select" style="padding:8px;"><option value="5">⭐⭐⭐⭐⭐</option></select>
+                <input type="text" id="review-text" placeholder="Comentario..." style="flex:1; padding:8px; background:#333; border:none; color:white;">
+                <button onclick="submitReview()" style="background:var(--primary); border:none; padding:0 15px; border-radius:5px; cursor:pointer;">Enviar</button>
+            </div>
+            <button id="btn-open-chat" class="btn-main" style="margin-top: 20px; background: var(--primary); color: black;">Contactar</button>
+        </div>
+    </div>
 
-    async function openUser(u) {
-        if (typeof u === 'string') { // Si viene de la lista
-            const res = await fetch('/api/users');
-            const all = await res.json();
-            activePartner = all.find(x => x.id === u);
-        } else activePartner = u;
+    <!-- MODAL CHAT -->
+    <div class="modal-overlay" id="chat-modal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div style="display:flex; align-items:center;">
+                    <i class="fa-solid fa-comments" style="margin-right:10px; color: var(--primary);"></i>
+                    <h3 id="chat-with-name">Chat</h3>
+                </div>
+                <button onclick="closeModal('chat-modal')" style="background:none; border:none; color:white; font-size:1.5rem;">&times;</button>
+            </div>
+            <div id="chat-messages"></div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Escribe un mensaje...">
+                <button onclick="sendMessage()" style="background:var(--primary); border:none; border-radius:50%; width:40px; height:40px; cursor:pointer;"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
 
-        document.getElementById('m-name').innerText = activePartner.name;
-        document.getElementById('user-modal').style.display = 'flex';
+    <audio id="notif-sound" src="notification.mp3" preload="auto"></audio>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const API_URL = ""; 
+        const appState = { user: null, map: null, userMarker: null, currentSelection: null, chatTarget: null, lastMessageId: 0, notificationUser: null, markers: {} };
         
-        loadChat();
-        if (chatInt) clearInterval(chatInt);
-        chatInt = setInterval(loadChat, 3000);
-    }
+        const ROLE_ICONS = { 'user': 'fa-solid fa-user', 'service': 'fa-solid fa-taxi', 'business': 'fa-solid fa-store' };
+        const ROLE_COLORS = { 'user': 'var(--primary)', 'service': 'var(--service)', 'business': 'var(--business)' };
 
-    async function loadChat() {
-        if (!activePartner) return;
-        const res = await fetch(`/api/get-messages?u1=${me.id}&u2=${activePartner.id}`);
-        const msgs = await res.json();
-        const box = document.getElementById('chat-box');
-        box.innerHTML = msgs.map(m => `<div class="msg ${m.from_id === me.id ? 'me' : 'them'}">${m.text}</div>`).join('');
-        box.scrollTop = box.scrollHeight;
-    }
+        // --- AUTH ---
+        let selectedRole = 'user';
+        function selectRole(role) {
+            selectedRole = role;
+            document.querySelectorAll('.role-card').forEach(e => e.className = 'role-card');
+            document.getElementById(`role-${role}`).classList.add(`active-${role}`);
+            document.getElementById('service-options').classList.add('hidden');
+            document.getElementById('business-options').classList.add('hidden');
+            if(role === 'service') document.getElementById('service-options').classList.remove('hidden');
+            if(role === 'business') document.getElementById('business-options').classList.remove('hidden');
+        }
 
-    async function sendMsg() {
-        const text = document.getElementById('m-text').value;
-        if (!text) return;
-        await fetch('/api/send-message', {
-            method: 'POST',
-            body: JSON.stringify({ from_id: me.id, to_id: activePartner.id, text })
-        });
-        document.getElementById('m-text').value = '';
-        loadChat();
-    }
+        async function checkUser() {
+            const phone = document.getElementById('login-phone').value;
+            if(!phone) return alert("Ingresa teléfono");
+            try {
+                const data = await (await fetch(`/api/check-user?phone=${phone}`)).json();
+                if(data.found) enterApp(data.user);
+                else { document.getElementById('login-view').classList.add('hidden'); document.getElementById('register-view').classList.remove('hidden'); document.getElementById('reg-phone').value = phone; }
+            } catch(e) { alert("Error de conexión"); }
+        }
 
-    function closeModal() {
-        document.getElementById('user-modal').style.display = 'none';
-        activePartner = null;
-        clearInterval(chatInt);
-    }
-</script>
+        async function registerUser() {
+            const name = document.getElementById('reg-name').value;
+            const surname = document.getElementById('reg-surname').value;
+            const phone = document.getElementById('reg-phone').value;
+            let details = (selectedRole === 'service') ? document.getElementById('reg-type').value : (selectedRole === 'business' ? document.getElementById('reg-offer').value : "Usuario");
+            const newUser = { id: 'me_'+Date.now(), name: name+' '+surname, phone, role: selectedRole, details, lat: 0, lng: 0 };
+            try {
+                await fetch('/api/user', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(newUser) });
+                enterApp(newUser);
+            } catch(e) { alert("Error registrando"); }
+        }
+        function showLogin() { document.getElementById('register-view').classList.add('hidden'); document.getElementById('login-view').classList.remove('hidden'); }
+
+        // --- APP ---
+        async function enterApp(user) {
+            appState.user = user;
+            
+            // UI Header
+            const headerAvatar = document.getElementById('header-avatar');
+            const headerIcon = document.getElementById('header-fallback-icon');
+            if(user.avatar_url) { headerAvatar.src = user.avatar_url; headerAvatar.style.display = 'block'; headerIcon.style.display = 'none'; }
+            else { headerAvatar.style.display = 'none'; headerIcon.style.display = 'inline-block'; headerIcon.className = ROLE_ICONS[user.role] || 'fa-solid fa-user'; headerIcon.style.color = ROLE_COLORS[user.role]; }
+
+            document.getElementById('display-name').innerText = user.name;
+            document.getElementById('display-role').innerText = user.role === 'business' ? 'Negocio' : (user.role === 'service' ? 'Servicio' : 'Usuario');
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('user-info-bar').classList.remove('hidden');
+            document.getElementById('sos-btn').classList.remove('hidden');
+
+            // Marcar ONLINE
+            user.status = 'online';
+            await fetch('/api/user', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(user) });
+
+            // Mapa
+            appState.map = L.map('map').setView([0,0],2);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(appState.map);
+
+            // GEOLOCALIZACIÓN Y ACTUALIZACIÓN
+            if("geolocation" in navigator) {
+                navigator.geolocation.watchPosition(async (pos) => {
+                    const { latitude, longitude } = pos.coords;
+                    user.lat = latitude; user.lng = longitude;
+                    appState.map.panTo([latitude, longitude]);
+                    
+                    // Enviar actualización al servidor (esto actualiza last_seen)
+                    await fetch('/api/user', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(user) });
+                    
+                    // Actualizar mi propio marcador en el mapa
+                    if(appState.userMarker) appState.map.removeLayer(appState.userMarker);
+                    appState.userMarker = L.marker([latitude, longitude], {icon: createIcon('user')}).addTo(appState.map).bindPopup("Tú estás aquí");
+                }, null, { enableHighAccuracy: true });
+            }
+
+            // INICIAR CICLO DE SINCRONIZACIÓN
+            startSyncLoop();
+        }
+
+        function startSyncLoop() {
+            // Primer sync inmediato
+            syncWorld();
+            // Luego cada 5 segundos
+            setInterval(syncWorld, 5000);
+        }
+
+        async function syncWorld() {
+            try {
+                // 1. Pedir lista de usuarios (El servidor ya filtra los de +1 min inactivos)
+                const res = await fetch('/api/users');
+                const users = await res.json();
+                
+                // 2. Obtener IDs de los que recibimos para comparar
+                const activeIds = users.map(u => u.id);
+                
+                // 3. AUTO-LIMPIEZA: Eliminar del mapa a los que ya no están en la lista
+                Object.keys(appState.markers).forEach(id => {
+                    if(id === appState.user.id) return; // No borrarme a mí mismo
+                    if(!activeIds.includes(id)) {
+                        appState.map.removeLayer(appState.markers[id]);
+                        delete appState.markers[id];
+                    }
+                });
+
+                // 4. Actualizar Lista Lateral y Mapa
+                const listContainer = document.getElementById('users-list-content');
+                listContainer.innerHTML = '';
+
+                users.forEach(u => {
+                    if(u.id === appState.user.id) return;
+
+                    // --- LISTA LATERAL ---
+                    const row = document.createElement('div');
+                    row.className = 'user-item';
+                    row.innerHTML = `
+                        <div class="user-avatar-mini" style="background:${ROLE_COLORS[u.role]}; color:white;">
+                            ${u.avatar_url ? `<img src="${u.avatar_url}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : `<i class="fa-solid ${ROLE_ICONS[u.role]}"></i>`}
+                        </div>
+                        <div style="font-size:0.85rem;">
+                            <b>${u.name}</b><br>
+                            <small style="color:${ROLE_COLORS[u.role]}">${u.role.toUpperCase()}</small>
+                        </div>
+                    `;
+                    row.onclick = () => { 
+                        // Al hacer clic en la lista, volar al mapa y abrir perfil
+                        appState.map.flyTo([u.lat, u.lng], 16); 
+                        openModal(u); 
+                    };
+                    listContainer.appendChild(row);
+
+                    // --- MAPA ---
+                    if(!appState.markers[u.id]) {
+                        // Si es un pin nuevo, crearlo
+                        const marker = L.marker([u.lat, u.lng], {icon: createIcon(u.role)}).addTo(appState.map);
+                        marker.on('click', () => openModal(u));
+                        appState.markers[u.id] = marker;
+                    } else {
+                        // Si ya existe, moverlo
+                        appState.markers[u.id].setLatLng([u.lat, u.lng]);
+                    }
+                });
+            } catch(e) { console.error("Error sync:", e); }
+        }
+
+        function toggleUserList() {
+            const drawer = document.getElementById('users-drawer');
+            drawer.classList.toggle('collapsed');
+        }
+
+        function createIcon(type) {
+            const cls = `custom-pin pin-${type} pulse-dot`;
+            const color = ROLE_COLORS[type];
+            const html = `<i class="fa-solid ${ROLE_ICONS[type]}"></i>`;
+            return L.divIcon({className:'custom-pin-container', html:`<div class="${cls}" style="background:${color}; width:30px; height:30px; display:flex; justify-content:center; align-items:center;">${html}</div>`, iconSize:[30,30], iconAnchor:[15,15]});
+        }
+
+        // --- MODAL DETALLES ---
+        async function openModal(u) {
+            appState.currentSelection = u;
+            document.getElementById('modal-name').innerText = u.name;
+            document.getElementById('modal-bio').innerText = u.bio || "Este usuario no tiene biografía aún.";
+            document.getElementById('modal-role-text').innerText = u.role === 'business' ? 'Negocio' : (u.role === 'service' ? 'Servicio de: ' + u.details : 'Usuario Normal');
+            
+            const avatarContainer = document.getElementById('modal-avatar');
+            if(u.avatar_url) {
+                avatarContainer.innerHTML = `<img src="${u.avatar_url}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+            } else {
+                avatarContainer.innerHTML = `<i class="fa-solid fa-user"></i>`;
+            }
+            avatarContainer.style.background = ROLE_COLORS[u.role];
+
+            const badge = document.getElementById('modal-status-badge');
+            badge.className = 'status-badge ' + (u.status === 'online' ? 'status-online' : 'status-offline');
+            badge.innerText = u.status === 'online' ? '🟢 En línea' : '⚫ Desconectado';
+
+            const dist = getDist(appState.user.lat, appState.user.lng, u.lat, u.lng);
+            document.getElementById('modal-dist').innerText = dist < 1000 ? dist+' m' : (dist/1000).toFixed(1)+' km';
+            document.getElementById('modal-time').innerText = Math.round(dist/80) + ' min';
+            
+            const btnChat = document.getElementById('btn-open-chat');
+            btnChat.style.background = ROLE_COLORS[u.role];
+            btnChat.style.color = u.role === 'user' ? 'black' : 'white';
+            
+            document.getElementById('detail-modal').classList.add('active');
+            
+            try {
+                const revs = await (await fetch(`/api/reviews/${u.id}`)).json();
+                const list = document.getElementById('reviews-list'); list.innerHTML='';
+                revs.forEach(r => list.innerHTML += `<div class="review-item"><b>${r.author_name}</b> <span class="stars">${'⭐'.repeat(r.stars)}</span><br>${r.comment}</div>`);
+            } catch(e) {}
+        }
+
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+        async function submitReview() {
+            const txt = document.getElementById('review-text').value;
+            if(!txt) return;
+            await fetch('/api/review', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ targetId: appState.currentSelection.id, author: appState.user.name, stars: 5, comment: txt }) });
+            alert("Enviado"); document.getElementById('review-text').value = '';
+        }
+
+        // --- PERFIL PROPIO ---
+        function openMyProfile() {
+            if(!appState.user) return;
+            document.getElementById('edit-bio').value = appState.user.bio || "";
+            document.getElementById('edit-avatar-input').value = appState.user.avatar_url || "";
+            document.getElementById('edit-avatar-preview').src = appState.user.avatar_url || "";
+            document.getElementById('my-profile-modal').classList.add('active');
+        }
+
+        async function saveMyProfile() {
+            const newBio = document.getElementById('edit-bio').value;
+            const newAvatar = document.getElementById('edit-avatar-input').value;
+            appState.user.bio = newBio; appState.user.avatar_url = newAvatar;
+            if(newAvatar) {
+                document.getElementById('header-avatar').src = newAvatar;
+                document.getElementById('header-avatar').style.display = 'block';
+                document.getElementById('header-fallback-icon').style.display = 'none';
+            }
+            try {
+                await fetch('/api/update-profile', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: appState.user.id, bio: newBio, avatar_url: newAvatar }) });
+                alert("Perfil actualizado");
+                closeModal('my-profile-modal');
+            } catch(e) { alert("Error guardando perfil"); }
+        }
+
+        // --- CHAT ---
+        function openChat(targetUser) {
+            appState.chatTarget = targetUser;
+            document.getElementById('chat-with-name').innerText = "Chat con " + targetUser.name;
+            document.getElementById('chat-messages').innerHTML = '<div style="text-align:center; color:#666; font-size:0.8rem; margin-top:10px;">Cargando mensajes...</div>';
+            document.getElementById('chat-modal').classList.add('active');
+            loadMessages();
+            dismissNotification();
+        }
+
+        async function loadMessages() {
+            if(!appState.chatTarget) return;
+            try {
+                const msgs = await (await fetch(`/api/messages/${appState.chatTarget.id}?me=${appState.user.id}`)).json();
+                const container = document.getElementById('chat-messages');
+                if(msgs.length > 0 && msgs[msgs.length-1].id > appState.lastMessageId) {
+                    appState.lastMessageId = msgs[msgs.length-1].id;
+                }
+                container.innerHTML = '';
+                msgs.forEach(m => {
+                    const isMe = m.sender_id === appState.user.id;
+                    const div = document.createElement('div');
+                    div.className = `msg ${isMe ? 'msg-own' : 'msg-other'}`;
+                    div.innerText = m.message;
+                    container.appendChild(div);
+                });
+                container.scrollTop = container.scrollHeight;
+            } catch(e) { console.error(e); }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const txt = input.value;
+            if(!txt || !appState.chatTarget) return;
+            try {
+                await fetch('/api/messages', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ sender_id: appState.user.id, receiver_id: appState.chatTarget.id, message: txt }) });
+                input.value = '';
+                loadMessages();
+            } catch(e) { alert("Error enviando"); }
+        }
+
+        document.getElementById('btn-open-chat').addEventListener('click', () => { closeModal('detail-modal'); openChat(appState.currentSelection); });
+        document.getElementById('chat-input').addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMessage(); });
+
+        // --- NOTIFICACIONES ---
+        async function startNotificationChecker() {
+            setInterval(async () => {
+                if(!document.getElementById('chat-modal').classList.contains('active')) {
+                    try {
+                        const res = await fetch(`/api/check-notifications?user_id=${appState.user.id}`);
+                        const data = await res.json();
+                        if(data && data.length > 0 && data[0].id > appState.lastMessageId) {
+                            appState.lastMessageId = data[0].id;
+                            appState.notificationUser = { id: data[0].sender_id, name: data[0].sender_name };
+                            triggerNotification(data[0].message, data[0].sender_name);
+                        }
+                    } catch(e) {}
+                }
+            }, 5000);
+        }
+
+        function triggerNotification(msg, senderName) {
+            const notif = document.getElementById('notification-overlay');
+            document.getElementById('notif-text').innerHTML = `<b>${senderName}</b><br>${msg}`;
+            notif.classList.add('active');
+            const audio = document.getElementById('notif-sound');
+            if(audio) audio.play().catch(e => console.log("Audio blocked"));
+        }
+
+        function dismissNotification() { document.getElementById('notification-overlay').classList.remove('active'); }
+        function acceptNotification() {
+            dismissNotification();
+            if(appState.notificationUser) {
+                appState.currentSelection = appState.notificationUser; 
+                openChat(appState.notificationUser);
+            }
+        }
+
+        function toggleSOS() { document.body.classList.toggle('sos-active'); alert("MODO PÁNICO"); }
+        function getDist(l1, lo1, l2, lo2) { var R = 6371; var dLat = (l2-l1)*Math.PI/180; var dLo = (lo2-lo1)*Math.PI/180; var a = Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(l1*Math.PI/180)*Math.cos(l2*Math.PI/180)*Math.sin(dLo/2)*Math.sin(dLo/2); var c = 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); return R*c*1000; }
+    </script>
 </body>
 </html>
