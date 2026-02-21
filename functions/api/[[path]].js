@@ -96,6 +96,28 @@ export async function onRequest(context) {
       return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
     }
 
+
+
+    // RUTA: CHECK UNREAD MESSAGES (Para el icono badge)
+    if (url.pathname === "/api/unread-count" && request.method === "GET") {
+      const userId = url.searchParams.get("user_id");
+      const { results } = await env.DB.prepare(`
+        SELECT COUNT(*) as count FROM messages WHERE receiver_id = ? AND is_read = 0
+      `).bind(userId).first();
+      
+      return new Response(JSON.stringify({ count: results.count }), { headers: corsHeaders });
+    }
+
+    // RUTA: MARCAR COMO LEIDO (Cuando abres el chat o la ficha)
+    if (url.pathname === "/api/mark-read" && request.method === "POST") {
+      const data = await request.json();
+      await env.DB.prepare("UPDATE messages SET is_read = 1 WHERE receiver_id = ? AND sender_id = ?").bind(data.myId, data.otherId).run();
+      return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+    }
+
+
+
+
     // --- RESEÑAS ---
     if (url.pathname === "/api/review" && request.method === "POST") {
       const data = await request.json();
